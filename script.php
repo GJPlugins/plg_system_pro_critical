@@ -91,7 +91,7 @@ class PlgSystemPro_criticalInstallerScript
      */
     function uninstall($parent)
     {
-        echo '<p>' . Text::_('UNINSTALL_TEXT') . '</p>';
+        echo '<p>' . Text::_('PLG_SYSTEM_PRO_CRITICAL_UNINSTALL_TEXT') . '</p>';
     }
 
     /**
@@ -106,7 +106,7 @@ class PlgSystemPro_criticalInstallerScript
      */
     function update($parent)
     {
-        echo '<p> ' . Text::_('UPDATE_TEXT') . $parent->get('manifest')->version . '.</p>';
+        echo '<p> ' . Text::_('PLG_SYSTEM_PRO_CRITICAL_UPDATE_TEXT') . $parent->get('manifest')->version . '.</p>';
     }
 
     /**
