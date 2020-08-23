@@ -64,6 +64,9 @@
 		{
 			parent::__construct( $subject , $config );
 			$this->app = JFactory::getApplication();
+
+
+
 			
 		}
 		
