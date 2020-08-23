@@ -29,7 +29,7 @@ defined('_JEXEC') or die;
  * Class pro_criticalInstallerScript
  * @since 3.9
  */
-class pro_criticalInstallerScript
+class PlgSystemPro_criticalInstallerScript
 {
     /**
      * @var string Url архива библиотеки GNZ11
