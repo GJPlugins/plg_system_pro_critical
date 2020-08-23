@@ -50,7 +50,9 @@
 		 * @var bool
 		 */
 		private $SLEEP = false ;
-		
+
+		protected $patchGnz11 = JPATH_LIBRARIES . '/GNZ11' ;
+
 		/**
 		 * Constructor.
 		 *
@@ -65,10 +67,7 @@
 			parent::__construct( $subject , $config );
 			$this->app = JFactory::getApplication();
 
-
-
-			
-		}
+        }
 		
 		/**
 		 * Initialise the application.
@@ -79,20 +78,28 @@
 		 */
 		public function onAfterInitialise ()
 		{
-			
-			JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
-			JLoader::registerNamespace( 'GNZ11' , JPATH_LIBRARIES . '/GNZ11' , $reset = false , $prepend = false , $type = 'psr4' );
-			
-			
-			try
+
+
+            JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
+
+
+            try
 			{
+                JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
 				$this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+
 			}
 			catch( Exception $e )
 			{
-				$this->SLEEP = true;
-
-			}
+                if( !\Joomla\CMS\Filesystem\Folder::exists( $this->patchGnz11 ) && $this->app->isClient('administrator') )
+                {
+                    $this->app->enqueueMessage('Должна быть установлена бибиотека GNZ11' , 'error');
+                    $this->SLEEP = true;
+                    return;
+                }#END IF
+                $this->SLEEP = true;
+                throw new \Exception('Exception : Должна быть установлена бибиотека GNZ11' , 500 ) ;
+            }
 		}
 		
 		/**
@@ -119,9 +126,25 @@
 		 */
 		public function onBeforeCompileHead ()
 		{
-			if( $this->SLEEP ) return false ; #END IF
-			
-			$this->Helper->BeforeCompileHead();
+            if( $this->SLEEP ) return false ; #END IF
+            echo'<pre>';print_r( $this->SLEEP );echo'</pre>'.__FILE__.' '.__LINE__;
+            die(__FILE__ .' '. __LINE__ );
+
+
+
+        try
+        {
+            $this->Helper->BeforeCompileHead();
+        }
+        catch (Exception $e)
+        {
+            // Executed only in PHP 5, will not be reached in PHP 7
+            echo 'Выброшено исключение: ',  $e->getMessage(), "\n";
+            echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__;
+            die(__FILE__ .' '. __LINE__ );
+        }
+
+
 			
 			return true;
 		}
@@ -135,7 +158,7 @@
 		 * @since 3.2
 		 */
 		public function onBeforeRender(){
-		
+
 		}
 		
 		/**
@@ -147,12 +170,9 @@
 		 */
 		public function onAfterRender ()
 		{
-			
-			if( $this->SLEEP ) return false ; #END IF
+            if( $this->SLEEP ) return false ; #END IF
 			# Если Админ Панель
 			if( $this->app->isClient( 'administrator' ) ) return true; #END IF
-			
-			
 			$this->Helper->AfterRender();
 			
 			// Access to plugin parameters

@@ -122,7 +122,8 @@
 			
 			$Component_virtuemart = ComponentHelper::getComponent('com_virtuemart', $strict = true);
 			if(!$Component_virtuemart->id ){
-				if (!class_exists( 'VmConfig' )) require(JPATH_ROOT .'/administrator/components/com_virtuemart/helpers/config.php');
+				if (!class_exists( 'VmConfig' ))
+				    require(JPATH_ROOT .'/administrator/components/com_virtuemart/helpers/config.php');
 				\VmConfig::loadConfig();
 			}
 			
@@ -132,6 +133,7 @@
 			
 			# instance GNZ11
 			# Утановить настройки библионтеки GNZ11
+
 			$this->GNZ11_js =  \GNZ11\Core\Js::instance( $this->paramsComponent  );
 			
 			
