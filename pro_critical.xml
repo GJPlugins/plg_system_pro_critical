@@ -10,23 +10,36 @@
 	<version>1.0.4</version>
 	<description>PLG_SYSTEM_PRO_CRITICAL_XML_DESCRIPTION</description>
 
-	<!-- [Interpretation 16432] Language files -->
-	<languages folder="language">
-		<language tag="en-GB">en-GB/en-GB.plg_system_pro_critical.ini</language>
-		<language tag="en-GB">en-GB/en-GB.plg_system_pro_critical.sys.ini</language>
-	</languages>
+	<scriptfile>script.php</scriptfile>
+	<install> <!-- Runs on install -->
+		<sql>
+			<file driver="mysql" charset="utf8">sql/install.mysql.sql</file>
+		</sql>
+	</install>
+	<update>
+		<schemas>
+			<schemapath type="mysql">sql/updates/mysql</schemapath>
+		</schemas>
+	</update>
+	<uninstall> <!-- Runs on uninstall -->
+		<sql>
+			<file driver="mysql" charset="utf8">sql/uninstall.mysql.sql</file>
+		</sql>
+	</uninstall>
 
 	<!-- [Interpretation 16439] Plugin files -->
 	<files>
-		<filename plugin="pro_critical">pro_critical.php</filename>
-		<filename>index.html</filename>
-		<folder>language</folder>
-		<folder>Helpers</folder>
 		<folder>assets</folder>
+		<folder>Helpers</folder>
+		<folder>language</folder>
+		<folder>sql</folder>
+		<filename>index.html</filename>
+		<filename plugin="pro_critical">pro_critical.php</filename>
+		<filename>README.md</filename>
 	</files>
 
 	<!-- [Interpretation 16526] Update servers -->
 	<updateservers>
-		<server type="extension" priority="1" name="System - Pro_critical">https://joomla-upd.ga/plg_system_pro_critical.xml</server>
+		<server type="extension" priority="1" name="System - Pro_critical">https://raw.githubusercontent.com/GJPlugins/plg_system_pro_critical/master/update.xml</server>
 	</updateservers>
 </extension>
