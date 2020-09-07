@@ -59,7 +59,7 @@
 		 * @param   object  &$subject  The object to observe.
 		 * @param   array    $config   An optional associative array of configuration settings.
 		 *
-		 * @throws \Exception
+		 * @throws Exception
 		 * @since   3.7
 		 */
 		public function __construct ( &$subject , $config )
@@ -78,27 +78,56 @@
 		 */
 		public function onAfterInitialise ()
 		{
-
-
+            $this->params->set('is_none_component' , false ) ;
             JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
 
+            try
+            {
+//                $com_pro_criticalParams = JComponentHelper::getParams('com_pro_critical');
+
+
+
+                $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+            }
+            catch (Exception $e)
+            {
+                switch ($e->getCode()){
+                    # Если компонент не  установлен
+                    case 1000:
+                        if( !\Joomla\CMS\Filesystem\Folder::exists( $this->patchGnz11 ) && $this->app->isClient('administrator') )
+                        {
+                            $this->app->enqueueMessage($e->getMessage() , 'error');
+                        }
+
+
+                        $this->params->set('is_none_component' , true ) ;
+
+
+
+
+                        $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+                }
+            }
 
             try
 			{
                 JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
-				$this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
-
-			}
+            }
 			catch( Exception $e )
 			{
-                if( !\Joomla\CMS\Filesystem\Folder::exists( $this->patchGnz11 ) && $this->app->isClient('administrator') )
-                {
-                    $this->app->enqueueMessage('Должна быть установлена бибиотека GNZ11' , 'error');
-                    $this->SLEEP = true;
-                    return;
-                }#END IF
-                $this->SLEEP = true;
-                throw new \Exception('Exception : Должна быть установлена бибиотека GNZ11' , 500 ) ;
+			    switch ($e->getCode()){
+
+                    default:
+                        if( !\Joomla\CMS\Filesystem\Folder::exists( $this->patchGnz11 ) && $this->app->isClient('administrator') )
+                        {
+                            $this->app->enqueueMessage('Должна быть установлена бибиотека GNZ11' , 'error');
+                            $this->SLEEP = true;
+                            return;
+                        }#END IF
+                        $this->SLEEP = true;
+                        throw new Exception('Exception : Должна быть установлена бибиотека GNZ11' , 500 ) ;
+
+                }
             }
 		}
 		
@@ -127,22 +156,17 @@
 		public function onBeforeCompileHead ()
 		{
             if( $this->SLEEP ) return false ; #END IF
-            echo'<pre>';print_r( $this->SLEEP );echo'</pre>'.__FILE__.' '.__LINE__;
-            die(__FILE__ .' '. __LINE__ );
-
-
-
-        try
-        {
-            $this->Helper->BeforeCompileHead();
-        }
-        catch (Exception $e)
-        {
-            // Executed only in PHP 5, will not be reached in PHP 7
-            echo 'Выброшено исключение: ',  $e->getMessage(), "\n";
-            echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__;
-            die(__FILE__ .' '. __LINE__ );
-        }
+            try
+            {
+                $this->Helper->BeforeCompileHead();
+            }
+            catch (Exception $e)
+            {
+                // Executed only in PHP 5, will not be reached in PHP 7
+                echo 'Выброшено исключение: ',  $e->getMessage(), "\n";
+                echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__;
+                die(__FILE__ .' '. __LINE__ );
+            }
 
 
 			
@@ -157,9 +181,7 @@
 		 *
 		 * @since 3.2
 		 */
-		public function onBeforeRender(){
-
-		}
+		public function onBeforeRender(){ }
 		
 		/**
 		 * Trigger the onAfterRender event.
@@ -170,10 +192,13 @@
 		 */
 		public function onAfterRender ()
 		{
+
+
             if( $this->SLEEP ) return false ; #END IF
 			# Если Админ Панель
 			if( $this->app->isClient( 'administrator' ) ) return true; #END IF
-			$this->Helper->AfterRender();
+
+            $this->Helper->AfterRender();
 			
 			// Access to plugin parameters
 			// $sample = $this->params->get( 'sample' , '42' );
@@ -207,7 +232,7 @@
 		public function onAfterRespond ()
 		{
 			if( $this->SLEEP ) return false ; #END IF
-			die(__FILE__ .' '. __LINE__ );
+
 			return true;
 		}
 		

@@ -2,28 +2,37 @@
 	namespace Plg\Pro_critical\Optimize;
 	use JFactory;
 	use Exception;
-	use Throwable;
+    use Joomla\CMS\Application\CMSApplication;
+    use Throwable;
 	
 	use JURI;
 	use Joomla\CMS\Filesystem\File as JFile;
 	// use JModelLegacy;
 	use \Joomla\CMS\MVC\Model\BaseDatabaseModel as JModelLegacy ;
-	
-	/**
-	 * @since 3.9
-	 *@subpackage
-	 *
-	 * @copyright   A copyright
-	 * @license     A "Slug" license name e.g. GPL2
-	 * @package     ${NAMESPACE}
-	 */
-	
+
+    /**
+     * Класс Отимизации CSS && JAVASCRIPT
+     * @package     Plg\Pro_critical\Optimize
+     *
+     * @since 3.9
+     */
 	class Js_css
 	{
-		
+        /**
+         * @var CMSApplication|null
+         * @since version
+         */
 		private $app  ;
 		private $Errors ;
+        /**
+         * @var string Адрес шлюза для CSS оптимизации
+         * @since version
+         */
 		private static $cssUrl = 'https://cssminifier.com/raw' ;
+        /**
+         * @var string Адрес шлюза для JAVASCRIPT оптимизации
+         * @since version
+         */
 		private static $javascriptUrl = 'https://javascript-minifier.com/raw' ;
 		public $file ;
 		public $newFile ;
@@ -33,6 +42,10 @@
 		 * @since 3.9
 		 */
 		private static $component = 'pro_critical';
+        /**
+         * @var string Префикс для модели
+         * @since version
+         */
 		private static $prefix = 'pro_critical' . 'Model';
 		
 		/**
@@ -107,42 +120,58 @@
 			
 			$model =  ( explode('.' , $output['task'] ) )[0] ;
 			$jform = $output['jform'] ;
-			
-			
-			
-			if( $model == 'css_file' || $model == 'js_file' )
+
+
+            $urlApi = false ;
+            switch($model){
+                case 'css_file':
+                    $urlApi =  self::$cssUrl ;
+
+                    break ;
+                case 'js_style':
+                case 'js_file':
+                    $urlApi = self::$javascriptUrl ;
+
+                    break ;
+                default :
+                    $mes = 'Не удалось определить тип обрабатываемых данных.' ;
+                    throw new Exception( $mes , 500 );
+            }
+
+			if( $model == 'css_file' || $model == 'js_file'     )
 			{
-				$file = $jform['file'] ;
-				if( $jform['override'] && !empty( $jform['override_file'] ))
-				{
-					$file = $jform['override_file'] ;
-				}#END IF
-				
-				
-				$Model = JModelLegacy::getInstance( $model , self::$prefix );
+                $file = $jform['file'];
+                if( $jform['override'] && !empty($jform['override_file']) )
+                {
+                    $file = $jform['override_file'];
+                }#END IF
+                #Подготовить имена файлов и отправить на сжатие.
+                $data = $this->getDataProcess($file, $urlApi);
+                $jform['minify_file'] = $this->newFile ;
+
+			}else if($model == 'js_style'){
+
+                $GNZ11_Js_css = new \GNZ11\Api\Optimize\Js_css();
+                $data         = $GNZ11_Js_css->Minified( $urlApi , $jform['content'] );
+                $jform['content_min'] = $data['content'] ;
+                $jform['modified'] = 1 ;
+
+//                echo'<pre>';print_r( $jform );echo'</pre>'.__FILE__.' '.__LINE__;
+//                echo'<pre>';print_r( $data );echo'</pre>'.__FILE__.' '.__LINE__;
+//                die(__FILE__ .' '. __LINE__ );
+
+
 			}#END IF
-			
-			$urlApi = false ;
-			switch($model){
-				case 'css_file':
-					$urlApi =  self::$cssUrl ;
-					
-					break ;
-				case 'js_file':
-					$urlApi = self::$javascriptUrl ;
-					
-					break ;
-				default :
-					$mes = 'Не удалось определить тип обрабатываемых данных.' ;
-					throw new Exception( $mes , 500 );
-			}
+
+            $Model = JModelLegacy::getInstance( $model , self::$prefix );
+
+
 			
 			
-			#Подготовить имена файлов и отправить на сжатие.
-			$data = $this->getDataProcess( $file , $urlApi   );
+
 			
 			
-			$jform['minify_file'] = $this->newFile ;
+
 			if( !$Model->save($jform) )
 			{
 				$mes = 'Сохранение параметров не удалось!';
@@ -156,55 +185,67 @@
 			#TODO Создать обработчик ошибок !!!
 			
 		}
-		
-		
-		/**
-		 * Вход для Удаления сжатых файлов
-		 *
-		 * @throws Exception
-		 * @since version
-		 */
+
+        /**
+         * Ajax Вход для Удаления сжатых файлов
+         * @return bool|null
+         * @throws Exception
+         * @since 3.9
+         * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+         * @date 25.08.2020 02:10
+         *
+         */
 		public function remove_minify(){
-			
 			# Только для администратора
 			if( !$this->app->isClient( 'administrator' ) ) return null ;
-			
-			$form = $this->app->input->get('data' , false , 'RAW');
-			
-			parse_str( $form, $output );
-			
-			$model =  ( explode('.' , $output['task'] ) )[0] ;
-			$jform = $output['jform'] ;
-			
-			if( $model == 'css_file' )
+            parse_str( $this->app->input->get('data' , false , 'RAW') , $output );
+
+            $model =  ( explode('.' , $output['task'] ) )[0] ;
+            $_Model = JModelLegacy::getInstance( $model , self::$prefix );
+
+            $jform = $output['jform'] ;
+
+
+
+
+
+
+			if(  in_array( $model , ['css_file' , 'js_file'] ) )
 			{
 				$path = $jform['minify_file'];
 				$jform['minify_file'] = false ;
-			
-				$Css_fileModel = JModelLegacy::getInstance( $model , self::$prefix );
-				
-				if( !$Css_fileModel->save( $jform ) )
+			    if( !$_Model->save( $jform ) )
 				{
 					$this->app->enqueueMessage('Не удалось обновать параметры этих данных' , 'warning');
 				}else{
 					$this->app->enqueueMessage('Параметры сохранены!' );
 				}#END IF
-			}#END IF
-			
-			
-			if( empty($path) )
-			{
-				$mes = 'ERROR : Имя файла не передано!';
-				$this->app->enqueueMessage( $mes , 'warning' );
+                if( empty($path) )
+                {
+                    $mes = 'ERROR : Имя файла не передано!';
+                    $this->app->enqueueMessage( $mes , 'warning' );
+                    return true ;
+                }#END IF
 
-				return true ;
-			}#END IF
-			
-			if( $this->removeMinFile($path) )
-			{
-				return true ;
-			}#END IF
-			
+                if( $this->removeMinFile($path) )
+                {
+                    return true ;
+                }#END IF
+
+			}else if (in_array( $model , ['js_style' ,  ] ) ){
+                $jform['minify'] = false ;
+                $jform['content_min'] = false ;
+                if( !$_Model->save( $jform ) )
+                {
+                    $this->app->enqueueMessage('Не удалось обновать параметры этих данных' , 'warning');
+                }else{
+                    $this->app->enqueueMessage('Параметры сохранены!' );
+                }#END IF
+                return true ;
+            }#END IF
+
+
+
 			return false ;
 			
 		}
@@ -252,8 +293,7 @@
 			
 			return true ;
 		}
-		
-		
+
 		/**
 		 * @param $arr
 		 * @param $url
@@ -271,8 +311,6 @@
 			
 			foreach( $arr as $originalFilePath => $minFilePath )
 			{
-				
-				
 				$handler = @fopen( $minFilePath , 'w' );
 				if( !$handler )
 				{
@@ -280,7 +318,6 @@
 					$mes = 'Не возможно открыть файл для записи.' . '<br>';
 					$mes .= 'Проверьте права доступа к файлу и директории.';
 					throw new Exception( $mes , 500 );
-					
 				}#END IF
 				
 				if( !JFile::exists($originalFilePath) )
@@ -295,7 +332,6 @@
 				
 				try
 				{
-					// Code that may throw an Exception or Error.
 					$GNZ11_Js_css = new \GNZ11\Api\Optimize\Js_css();
 					$data         = $GNZ11_Js_css->Minified( $url , $contents );
 				}
@@ -319,11 +355,8 @@
 				$mes .= 'Размер сжатого файла: ' . $data[ 'sizes' ][ 'out' ] . ' кБ.<br>';
 				$mes .= 'Процент сжатия: ' . $data[ 'sizes' ][ 'zip_percent' ] . '%';
 				$this->app->enqueueMessage( $mes );
-				
 				return $data;
-				
 			}
-			
 			return [];
 		}#END FN
 		
@@ -337,19 +370,19 @@
 		 * @throws Exception
 		 * @since version
 		 */
-		protected function getDataProcess ( $file , $urlApi   )
-		{
-			$newArr = [];
-			# Изменить расшерение файла - добавить ".min"
-			$newfile = $this->replace_extension( $file );
-			
-			$this->file    = str_replace( JURI::root() , '/' , $file );
-			$this->newFile = str_replace( JURI::root() , '/' , $newfile );
-			
-			$newArr[ JPATH_ROOT . $this->file ] = JPATH_ROOT . $this->newFile;
-			return$this->Procrss_minify( $newArr , $urlApi );
-			
-		}
+        protected function getDataProcess($file, $urlApi)
+        {
+            $newArr = [];
+            # Изменить расшерение файла - добавить ".min"
+            $newfile = $this->replace_extension($file);
+
+            $this->file = str_replace(JURI::root(), '/', $file);
+            $this->newFile = str_replace(JURI::root(), '/', $newfile);
+
+            $newArr[JPATH_ROOT . $this->file] = JPATH_ROOT . $this->newFile;
+            return $this->Procrss_minify($newArr, $urlApi);
+
+        }
 		
 		
 	}

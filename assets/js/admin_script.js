@@ -3,7 +3,7 @@
 PlgProCritical.Options = Joomla.getOptions('PlgProCritical') ;
 
 PlgProCritical.Init = function(){
-    var viewArr = ['css_file'] ;
+    var viewArr = ['css_file' , 'js_file' , 'js_style'] ;
     var view = PlgProCritical.Options.view
 
     if ( viewArr.indexOf( view ) === -1 ) return ;
@@ -18,6 +18,23 @@ PlgProCritical.css_file_Init = function(){
     ppc.addBtnOpenFile( $Input_s );
     ppc.initRadio_Files();
 };
+PlgProCritical.js_style_Init = function(){
+    var $ = jQuery ;
+    var $Input_s= $('[name*="[file]"],[name*="[minify_file]"],[name*="[override_file]"]');
+    var ppc = new PPC();
+    ppc.addBtnOpenFile( $Input_s );
+    ppc.initRadio_Files();
+};
+
+PlgProCritical.js_file_Init = function(){
+    var $ = jQuery ;
+    var $Input_s= $('[name*="[file]"],[name*="[minify_file]"],[name*="[override_file]"]');
+    var ppc = new PPC();
+    ppc.addBtnOpenFile( $Input_s );
+    ppc.initRadio_Files();
+};
+
+
 
 var PPC = function(){
     var $ = jQuery ;
@@ -216,7 +233,9 @@ var PPC = function(){
 
 
     // Адаптер для сжимания файлов
-    this.jform_minify = function (event) { var ppc = new PPC(); ppc.eventMinify(event);};
+    this.jform_minify = function (event) {
+        var ppc = new PPC(); ppc.eventMinify(event);
+    };
 
     /**
      * Обработчк События минифи файл

@@ -124,6 +124,7 @@ class PlgSystemPro_criticalInstallerScript
      */
     function preflight($typeExt, $parent)
     {
+
         // manifest file version
         $this->release = (string)$parent->get('manifest')->version;
 

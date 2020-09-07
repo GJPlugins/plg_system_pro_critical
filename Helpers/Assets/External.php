@@ -15,12 +15,20 @@
 	use Plg\Pro_critical\Helper_site;
 	use Exception;
 	use JDate;
-	
-	
+
+    /**
+     * Класс для обработки внешних ресурсов
+     * @package     Plg\Pro_critical\Helpers\Assets
+     *
+     * @since version
+     */
 	class External
 	{
-		
 		protected $paramsComponent ;
+        /**
+         * @var string Директория для хранения внешних ресурсов
+         * @since version
+         */
 		private $external_cache_directory_default = '/media/com_pro_critical/cashe_access' ;
 		/**
 		 * External constructor.

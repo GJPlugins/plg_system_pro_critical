@@ -9,7 +9,8 @@
 	
 	namespace Plg\Pro_critical\Helpers\Assets;
 	
-	use Joomla\CMS\Uri\Uri;
+	use Exception;
+    use Joomla\CMS\Uri\Uri;
 	
 	
 	/**
@@ -30,16 +31,14 @@
 		private $MediaVersion ;
 		
 		/**
-		 * helper constructor.
-		 * @throws \Exception
+		 * Links_assets constructor.
+		 * @throws Exception
 		 * @since 3.9
 		 */
 		private function __construct ( $options = [] )
 		{
 			$doc = \Joomla\CMS\Factory::getDocument();
 			$this->MediaVersion = $doc->getMediaVersion() ; 
-			
-			
 			return $this;
 		}#END FN
 		
@@ -47,7 +46,7 @@
 		 * @param   array  $options
 		 *
 		 * @return Links_assets
-		 * @throws \Exception
+		 * @throws Exception
 		 * @since 3.9
 		 */
 		public static function instance ( $options = [] )
@@ -73,62 +72,58 @@
 		 *
 		 * @since version
 		 */
-		public function prepareLinkData ( $Link ){
-			
-			$Link->href = $Link->file   ;
-			# Переопределение
-			if ( isset( $Link->override ) && !empty( $Link->override_file ) && $Link->override   )
-				$Link->href = $Link->override_file ; #END IF
-			
-			# режим разработки отключен
-			if ( !$Link->file_debug ){
-				# Мин версия
-				if ( isset($Link->minify) && $Link->minify && !empty( $Link->minify_file )  )
-					$Link->href = $Link->minify_file ; #END IF
-			}#END IF
-			
-			# Если с прелоадером
-			if ($Link->preload) $this->setPreload($Link);
-			
-			# id Revision
-			if( isset( $Link->ver_type ) && $Link->ver_type && !empty( $Link->revision_id ) )
-			{
-				$Link->href .= '?i=' . $Link->revision_id;
-			}else{
-				$Link->href .= '?i=' . $this->MediaVersion ;
-			}#END IF
-			
-			
-			if ( isset($Link->params_query) && $Link->params_query ) {
-				
-				$i = null ;
-				$queryStr = null ;
-				$params_query = json_decode( $Link->params_query );
-				foreach( $params_query as $query )
-				{
-					if( isset($query->published) && !$query->published ) continue ;
-					$queryStr .= !$i ?'':'&' ;
-					$queryStr .= $query->name. ( !empty($query->value)?'='.$query->value:'' ) ;
-					$i++;
-				}#END FOREACH
-				
-				$Link->href .= ( !empty($queryStr) ? '&' . $queryStr : null ) ;
-			
-			}
-			
-//			echo'<pre>';print_r( $Link->href );echo'</pre>'.__FILE__.' '.__LINE__;
-			
-			
-			
-			
-				$dataLink = $Link ;
-			return $dataLink ;
-		}
-		
-		
-		
-		
-		
+		public function prepareLinkData ( $Link )
+        {
+            $Link->href = $Link->file;
+            # Переопределение
+            if( isset($Link->override) && !empty($Link->override_file) && $Link->override )
+                $Link->href = $Link->override_file; #END IF
+
+            # режим разработки отключен
+            if( !$Link->file_debug )
+            {
+                # Мин версия
+                if( isset($Link->minify) && $Link->minify && !empty($Link->minify_file) )
+                    $Link->href = $Link->minify_file; #END IF
+            }#END IF
+
+            # Если с прелоадером
+            if( $Link->preload )
+                $this->setPreload($Link);
+
+            # id Revision
+            if( isset($Link->ver_type) && $Link->ver_type && !empty($Link->revision_id) )
+            {
+                $Link->href .= '?i=' . $Link->revision_id;
+            }
+            else
+            {
+                $Link->href .= '?i=' . $this->MediaVersion;
+            }#END IF
+
+            # TODO ????
+            if( isset($Link->params_query) && $Link->params_query )
+            {
+                $i = null;
+                $queryStr = null;
+                $params_query = json_decode($Link->params_query);
+                foreach ($params_query as $query)
+                {
+                    if( isset($query->published) && !$query->published )
+                        continue;
+                    $queryStr .= !$i ? '' : '&';
+                    $queryStr .= $query->name . (!empty($query->value) ? '=' . $query->value : '');
+                    $i++;
+                }#END FOREACH
+
+                $Link->href .= (!empty($queryStr) ? '&' . $queryStr : null);
+
+            }
+
+            $dataLink = $Link;
+            return $dataLink;
+        }
+
 		/**
 		 * Проверка хоста ссылки локалный или внешний
 		 * @param          $href
@@ -139,8 +134,12 @@
 		 */
 		protected function checkLocalHost ( $href    )
 		{
-			$protocol = parse_url( $href );
-			# для ссылок вида //joomla-upd.ga/test_css/test_home.css
+		    $protocol = parse_url( $href );
+            if(  !isset($protocol[ 'host' ]) )
+            {
+                return true ;
+            }#END IF
+            # для ссылок вида //joomla-upd.ga/test_css/test_home.css
 			# если домен действительно содержит точку
 			# и он не root домен сайта (не имеет вхождений в Uri::root() )
 			if( stristr( $protocol[ 'host' ] , '.' ) && !stristr( Uri::root() , $protocol[ 'host' ] ) )
@@ -239,11 +238,7 @@
 				}#END IF
 			}#END IF
 			
-			/*if( $href == 'https://nobd.ml//assets/css/header.css' )
-			{
-			
-			
-			}#END IF*/
+
 			
 			
 			# Проверка path
@@ -257,7 +252,7 @@
 			else
 			{
 				# если host - не содержит точку
-				if( !stristr( $protocol[ 'host' ] , '.' ) && $isLocalHost && preg_match( '/^\/\//' , $href ) )
+				if( isset( $protocol[ 'host' ] ) &&  !stristr( $protocol[ 'host' ] , '.' ) && $isLocalHost && preg_match( '/^\/\//' , $href ) )
 				{
 					$log[ 'err' ][] = 'Ошибка в адресе локального файла. Два слеша в начале относительного пути';
 					$href           = '/' . $protocol[ 'host' ] . $protocol[ 'path' ];
@@ -284,7 +279,33 @@
 			
 			return $log ;
 		}
-		
+
+        /**
+         * Разобрать параметры запроса
+         *
+         * @param   array  $hrefArr
+         * @param   array  $link
+         * @param          $href
+         *
+         * @return string
+         *
+         * @since version
+         */
+        public function parseRequestParameters (array $hrefArr , array $link , $href )
+        {
+            $paramHrefArr = explode( '&' , $hrefArr[ 1 ] );
+            $i            = 0;
+            foreach( $paramHrefArr as $item )
+            {
+                $paramArr                                                          = explode( '=' , $item );
+                $nam                                                               = $paramArr[ 0 ];
+                $val                                                               = (isset( $paramArr[ 1 ] ) ? $paramArr[ 1 ] : null );
+                $link[ $href ][ 'params_query' ][ 'params_query' . $i ][ 'name' ]  = $nam;
+                $link[ $href ][ 'params_query' ][ 'params_query' . $i ][ 'value' ] = $val;
+                $i++;
+            }#END FOREACH
+            return json_encode( $link[ $href ][ 'params_query' ] );
+        }
 		
 		
 	}

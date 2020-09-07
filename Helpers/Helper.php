@@ -32,15 +32,14 @@
 		private $params;
 		private $paramsComponent;
 		private $GNZ11_js;
-		
-		
-		/**
-		 * Имя компонента для вызова модели
-		 * @var string
-		 * @since 3.9
-		 */
-		private static $component = 'pro_critical';
-		private static $prefix = 'pro_critical' . 'Model';
+        /**
+         * Имя компонента для вызова модели
+         * @since 3.9
+         * @var string
+         */
+        public static $component = 'pro_critical';
+        public static $prefix = 'pro_critical' . 'Model';
+
 		
 		/**
 		 * helper constructor.
@@ -52,31 +51,36 @@
 		 */
 		private function __construct ( $params  )
 		{
+
+
+
 			
 			$this->app = JFactory::getApplication();
 			$this->params = $params ;
-			
-			$Component = ComponentHelper::getComponent('com_pro_critical', $strict = true);
-			if(!$Component->id ){
-				$mes = 'Для правильной работы <b>плагина Pro Critical</b> - должен быть установлен и включен <b>компонент Pro Critical</b>' ;
-				if( $this->app->input->get('format' , 'html' , 'STRING') == 'json' ) {
-					$mes ='';
-				} #END IF
-				
-				$this->app->enqueueMessage($mes , 'warning');
-				throw new Exception( $mes , 500 );
-			}
-			$this->paramsComponent = ComponentHelper::getParams( 'com_pro_critical' );
-			$this->paramsComponent->set('plugin_param' , $this->params ) ;
-			
-			JLoader::registerNamespace('Plg\Pro_critical\Helpers\Assets',JPATH_PLUGINS.'/system/pro_critical/Helpers/Assets',$reset=false,$prepend=false,$type='psr4');
-			JLoader::registerNamespace( 'Com_pro_critical\Helpers' ,
-				JPATH_ADMINISTRATOR . '/components/com_pro_critical/com_pro_critical/helpers' ,
-				$reset = false , $prepend = false , $type = 'psr4' );
-			
-			
-			
-			 return $this;
+
+			if( !$this->params->get('is_none_component' , false ) )
+            {
+                $Component = ComponentHelper::getComponent('com_pro_critical', $strict = true);
+                if(!$Component->id ){
+                    $mes = 'Для правильной работы <b>плагина Pro Critical</b> - должен быть установлен и включен <b>компонент Pro Critical</b>' ;
+                    if( $this->app->input->get('format' , 'html' , 'STRING') == 'json' ) {
+                        $mes ='';
+                    } #END IF
+
+                    //				$this->app->enqueueMessage($mes , 'warning');
+                    throw new Exception( $mes , 1000 );
+                }
+                $this->paramsComponent = ComponentHelper::getParams( 'com_pro_critical' );
+                $this->paramsComponent->set('plugin_param' , $this->params ) ;
+
+
+
+                JLoader::registerNamespace( 'Com_pro_critical\Helpers' ,
+                    JPATH_ADMINISTRATOR . '/components/com_pro_critical/com_pro_critical/helpers' ,
+                    $reset = false , $prepend = false , $type = 'psr4' );
+            }#END IF
+            JLoader::registerNamespace('Plg\Pro_critical\Helpers\Assets',JPATH_PLUGINS.'/system/pro_critical/Helpers/Assets',$reset=false,$prepend=false,$type='psr4');
+            return $this;
 		}#END FN
 	
 		/**
@@ -96,92 +100,128 @@
 			
 			return self::$instance;
 		}#END FN
-		
-		
-		
-		/**К ссылке этого файла будет добавлен атрибут async
+
+		/**
+         * К ссылке этого файла будет добавлен атрибут async
 		 * Перед созданием HEAD
 		 *
 		 * @throws Exception
 		 * @since version
 		 */
-		public function BeforeCompileHead(){
-			$doc = JFactory::getDocument();
-			
-			
-			$DefaultLanguage = \Plg\Pro_critical\Helper_site::getDefaultLanguage();
-			$languages = \JLanguageHelper::getLanguages('lang_code');
-			$doc->addScriptOptions('langSef'  , $languages[$DefaultLanguage]->sef ) ;
-			
-			
-			$menu = \JFactory::getApplication()->getMenu();
-			$active = $menu->getActive();
-			$doc->addScriptOptions('itemId'  , (!empty($active) ? $active->id : false) ) ;
-			
-			
-			
-			$Component_virtuemart = ComponentHelper::getComponent('com_virtuemart', $strict = true);
-			if(!$Component_virtuemart->id ){
-				if (!class_exists( 'VmConfig' ))
-				    require(JPATH_ROOT .'/administrator/components/com_virtuemart/helpers/config.php');
-				\VmConfig::loadConfig();
-			}
-			
-			
-			
-			
-			
-			# instance GNZ11
-			# Утановить настройки библионтеки GNZ11
+		public function BeforeCompileHead()
+        {
+            $doc = JFactory::getDocument();
+            $DefaultLanguage = \Plg\Pro_critical\Helper_site::getDefaultLanguage();
+            $languages = \JLanguageHelper::getLanguages('lang_code');
+            $doc->addScriptOptions('langSef', $languages[$DefaultLanguage]->sef);
 
-			$this->GNZ11_js =  \GNZ11\Core\Js::instance( $this->paramsComponent  );
-			
-			
-			$doc->addScriptOptions('siteUrl'  , JUri::root() ) ;
-			$doc->addScriptOptions('isClient'  , $this->app->isClient( 'administrator' )  ) ;
-			$doc->addScriptOptions('csrf.token'  , JSession::getFormToken()  ) ;
-//			$doc->addScriptOptions('csrf.token'  , JSession::getFormToken()  ) ;
-			
-			
-			
-			
-			
-			# Только для администратора
-			if( !$this->app->isClient( 'administrator' ) ) return ;
-			
-			
-			
-			# установка ресурсов для админ панели
-			\Com_pro_critical\Helpers\helper::settingsAdminViews() ;
-			
-			
-			
-			/*if( $this->app->input->get('option') == 'com_pro_critical' )
-			{
-			
-			}#END IF*/
-		}
+
+            $menu = \JFactory::getApplication()->getMenu();
+            $active = $menu->getActive();
+            $doc->addScriptOptions('itemId', (!empty($active) ? $active->id : false));
+
+            $Component_virtuemart = ComponentHelper::getComponent('com_virtuemart', $strict = true);
+            if( !$Component_virtuemart->id )
+            {
+                if( !class_exists('VmConfig') )
+                    require(JPATH_ROOT . '/administrator/components/com_virtuemart/helpers/config.php');
+                \VmConfig::loadConfig();
+            }
+
+            # instance GNZ11
+            $this->GNZ11_js = \GNZ11\Core\Js::instance($this->paramsComponent);
+            # Утановить настройки библионтеки GNZ11
+            $doc->addScriptOptions('siteUrl', JUri::root());
+            $doc->addScriptOptions('isClient', $this->app->isClient('administrator'));
+            $doc->addScriptOptions('csrf.token', JSession::getFormToken());
+            //			$doc->addScriptOptions('csrf.token'  , JSession::getFormToken()  ) ;
+
+
+            ############################################################################################################
+            # Только для администратора
+            if( !$this->app->isClient('administrator') )
+                return;
+
+            if( !$this->params->get('is_none_component', false) )
+            {
+                # установка ресурсов для админ панели
+                \Com_pro_critical\Helpers\helper::settingsAdminViews();
+            }#END IF
+
+            /*if( $this->app->input->get('option') == 'com_pro_critical' )
+            {
+
+            }#END IF*/
+
+        }
 		
 		/**
-		 *
+		 * После рендеринга страницы
 		 *
 		 * @throws Exception
 		 * @since version
 		 */
 		public function AfterRender(){
- 
-			
-			$HelpersCss = Helpers\Assets\Css::instance();
-			
-			# Найти и извлечь все ссылки на CSS файлы и теги стили
-			$HelpersCss->getFileList();
-			
-			
+
+            # Если Админ Панель
+            if( $this->app->isClient( 'administrator' ) ) return true; #END IF
+
+            $HelpersAssets = \Plg\Pro_critical\Assets::instance( $this->paramsComponent );
+
+            # Извлечение всех ресурсов JS && CSS Со траницы
+            $HelpersAssets->getAllAccessList();
+
+
+            # Установить найденные ресурсы в тело страницы
+            $HelpersAssets->setAssetsToPage();
+
+
+
+            # Перенос скриптов в низ тела страницы
+            if( $this->paramsComponent->get('moving_scripts_to_bottom' , false) )
+            {
+                $Optimises = \GNZ11\Api\Optimize\Optimises::instance( $this->params ) ;
+                $Optimises->setParams([
+                    # Имя Оптимизатора
+                    'my_name' => 'HtmlOptimizer' ,
+                    # Переносить скрипты вниз страницы : Bool
+                    'downScript' => true ,
+                    'preload'=>[],
+                    'not_load'=>[],
+                    # обварачивать элементы в тег <template /> : Array
+                    'to_templates'=>[],
+                    'to_html_file'=>[],
+                ]);
+//                $Optimises->Start();
+
+            }#END IF
+
+
+
+
+
+
+
+
+
+
+//            $HelpersCss = Helpers\Assets\Css::instance();
+
+//            $HelpersCss
+
+            # Найти и извлечь все ссылки на CSS файлы и теги стили
+//			$HelpersCss->getFileList();
+
 			# Установить в HTML ссылки на Css файлы и стили
-			$HelpersCss->insertStylesIntoDocument();
+//			$HelpersCss->insertStylesIntoDocument();
+
+
+
+            ### Сохранить тело страницы
+            $HelpersAssets->saveBody();
+
 			
-			
-			
+			return true ;
 		}
 		
 		/**
