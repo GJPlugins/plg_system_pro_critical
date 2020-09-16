@@ -120,13 +120,18 @@
             $active = $menu->getActive();
             $doc->addScriptOptions('itemId', (!empty($active) ? $active->id : false));
 
-            $Component_virtuemart = ComponentHelper::getComponent('com_virtuemart', $strict = true);
-            if( !$Component_virtuemart->id )
+            if ( $this->params->get('virtuemart_enable' , 0 ) )
             {
-                if( !class_exists('VmConfig') )
-                    require(JPATH_ROOT . '/administrator/components/com_virtuemart/helpers/config.php');
-                \VmConfig::loadConfig();
-            }
+                $Component_virtuemart = ComponentHelper::getComponent('com_virtuemart', $strict = true);
+                if( !$Component_virtuemart->id )
+                {
+                    if( !class_exists('VmConfig') )
+                        require(JPATH_ROOT . '/administrator/components/com_virtuemart/helpers/config.php');
+                    \VmConfig::loadConfig();
+                }
+            }#END IF
+
+
 
             # instance GNZ11
             $this->GNZ11_js = \GNZ11\Core\Js::instance($this->paramsComponent);
@@ -165,17 +170,18 @@
 
             # Если Админ Панель
             if( $this->app->isClient( 'administrator' ) ) return true; #END IF
+            # Если нет настроек компонента
+            if ( !$this->paramsComponent ) return true; #END IF
+
+
 
             $HelpersAssets = \Plg\Pro_critical\Assets::instance( $this->paramsComponent );
 
             # Извлечение всех ресурсов JS && CSS Со траницы
             $HelpersAssets->getAllAccessList();
 
-
             # Установить найденные ресурсы в тело страницы
             $HelpersAssets->setAssetsToPage();
-
-
 
             # Перенос скриптов в низ тела страницы
             if( $this->paramsComponent->get('moving_scripts_to_bottom' , false) )
@@ -195,14 +201,6 @@
 //                $Optimises->Start();
 
             }#END IF
-
-
-
-
-
-
-
-
 
 
 //            $HelpersCss = Helpers\Assets\Css::instance();
@@ -230,7 +228,12 @@
 		 * @since version
 		 */
 		public function onAjax(){
-			
+
+
+
+
+
+
 			# Проверить Token
 			if(!JSession::checkToken('get')) exit;
 			

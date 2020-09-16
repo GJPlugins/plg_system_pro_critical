@@ -198,7 +198,26 @@
 		public function remove_minify(){
 			# Только для администратора
 			if( !$this->app->isClient( 'administrator' ) ) return null ;
+
+            $output = [] ;
             parse_str( $this->app->input->get('data' , false , 'RAW') , $output );
+
+            # Удаление сжвтого файла для кнопки формы type="compresradio"
+            # Location : /GNZ11/Document/Form/Fields/compresradio.php
+            if (!isset( $output['task'] ))
+            {
+                $fileOriginal = $this->app->input->get('data' , false , 'RAW');
+                $fileExt = JFile::getExt($fileOriginal);
+                $fileOriginal = str_replace( '.'.$fileExt , '.min.'.$fileExt , $fileOriginal ) ;
+                if( $this->removeMinFile($fileOriginal) )
+                {
+                    return true ;
+                }#END IF
+                return false ;
+            }#END IF
+
+
+
 
             $model =  ( explode('.' , $output['task'] ) )[0] ;
             $_Model = JModelLegacy::getInstance( $model , self::$prefix );
@@ -308,6 +327,10 @@
 		 */
 		public function Procrss_minify($arr, $url)
 		{
+//		    echo'<pre>';print_r( $arr );echo'</pre>'.__FILE__.' '.__LINE__;
+//		    echo'<pre>';print_r( $url );echo'</pre>'.__FILE__.' '.__LINE__;
+//		    die(__FILE__ .' '. __LINE__ );
+
 			
 			foreach( $arr as $originalFilePath => $minFilePath )
 			{

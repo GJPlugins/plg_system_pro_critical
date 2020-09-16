@@ -7,7 +7,7 @@
 	<authorUrl>https://nobd.ml</authorUrl>
 	<copyright>Copyright (C) 2019. All Rights Reserved</copyright>
 	<license>GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html</license>
-	<version>1.0.4</version>
+	<version>1.0.6</version>
 	<description>PLG_SYSTEM_PRO_CRITICAL_XML_DESCRIPTION</description>
 	<version_gnz11>0.4.5</version_gnz11>
 	<scriptfile>script.php</scriptfile>
@@ -37,6 +37,28 @@
 		<filename plugin="pro_critical">pro_critical.php</filename>
 		<filename>README.md</filename>
 	</files>
+	<config>
+		<fields name="params">
+			<fieldset name="basic">
+				<field name="virtuemart_enable"
+					   type="radio"
+					   default="0"
+					   label="PRO_CRITICAL_VIRTUEMART_ENABLE"
+					   description="PRO_CRITICAL_VIRTUEMART_ENABLE_DESC"
+					   class="btn-group btn-group-yesno"
+					   showon=""
+					   readonly="true"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+
+
+			</fieldset>
+		</fields>
+
+	</config>
+
 
 	<!-- [Interpretation 16526] Update servers -->
 	<updateservers>

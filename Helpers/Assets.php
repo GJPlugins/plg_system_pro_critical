@@ -170,8 +170,12 @@ class Assets
             switch ($node->tagName){
                 case 'link':
                     $type = 'text/css' ;
-                    $attr = self::$dom::getAttrElement($node, ['rel']);
+                    $attr = self::$dom::getAttrElement($node, []);
+
+                    if (!isset( $attr['href'] )) continue ; #END IF
+
                     $hash =  md5( $attr['href'] ) ;
+
 
                     $hrefArr = explode('?', $attr['href']);
 
@@ -393,6 +397,7 @@ class Assets
      * Добавить параметры GET Запроса к ссылке на файл
      * @param $file
      * @param $Object
+     * @return string
      * @since 3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
      * @date 25.08.2020 20:55
@@ -417,13 +422,8 @@ class Assets
 
             return $file ;
         }
+        return $file ;
     }
-
-
-
-
-
-
 
     /**
      * Найти новые рессурсы которых нет в справочнике и добавить их  в справочник

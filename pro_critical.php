@@ -81,12 +81,10 @@
             $this->params->set('is_none_component' , false ) ;
             JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
 
+
             try
             {
 //                $com_pro_criticalParams = JComponentHelper::getParams('com_pro_critical');
-
-
-
                 $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
             }
             catch (Exception $e)
@@ -98,13 +96,7 @@
                         {
                             $this->app->enqueueMessage($e->getMessage() , 'error');
                         }
-
-
                         $this->params->set('is_none_component' , true ) ;
-
-
-
-
                         $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
                 }
             }
@@ -167,10 +159,7 @@
                 echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__;
                 die(__FILE__ .' '. __LINE__ );
             }
-
-
-			
-			return true;
+            return true;
 		}
 		
 		/**
@@ -192,14 +181,12 @@
 		 */
 		public function onAfterRender ()
 		{
-
-
             if( $this->SLEEP ) return false ; #END IF
 			# Если Админ Панель
 			if( $this->app->isClient( 'administrator' ) ) return true; #END IF
 
             $this->Helper->AfterRender();
-			
+
 			// Access to plugin parameters
 			// $sample = $this->params->get( 'sample' , '42' );
 			

@@ -227,14 +227,13 @@ var PPC = function(){
 
     };
 
-
-
-
-
-
-    // Адаптер для сжимания файлов
+    /**
+     * Адаптер для сжимания файлов
+     * @param event
+     */
     this.jform_minify = function (event) {
-        var ppc = new PPC(); ppc.eventMinify(event);
+        var ppc = new PPC();
+        ppc.eventMinify(event);
     };
 
     /**
@@ -242,8 +241,8 @@ var PPC = function(){
      *
      * Способ вызова
      * var $el = $('#jform_gnzlib_debug input');                    // - радио кнопка
-     * var $file = $('[name*="[gnzlib_path_file_corejs]"]') ;       // - INP с оригинальным файлом
-     * var $min = $('[name*="[gnzlib_path_file_corejs_min]"]') ;   // - INP с оригинальным файлом
+     * var $file = $('[name*="[gnzlib_path_file_corejs]"]') ;       // - INPUT с оригинальным файлом
+     * var $min = $('[name*="[gnzlib_path_file_corejs_min]"]') ;   // - INPUT с оригинальным файлом
      * $el.on('change',{elem:$el,file:$file ,min:$min },ppc.eventMinify);
      *
      *
@@ -269,11 +268,12 @@ var PPC = function(){
             // Если запрещено удаление сжатой версии
             if (!v && event.data.no_del ) {
                 var mes = 'Cжатый файл не удален по условию.';
-                if ( typeof event.data.no_del_mes !=='undefined' )
-                    mes = event.data.no_del_mes ;
+
+                if ( typeof event.data.no_del_mes !=='undefined' ) mes = event.data.no_del_mes ;
                 gnz11.getAjax().then(function (Ajax) {
                     Ajax.renderNoty(mes)
                 });
+
                 return ;
             }
         }
