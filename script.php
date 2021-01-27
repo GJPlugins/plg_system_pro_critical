@@ -139,8 +139,12 @@ class PlgSystemPro_criticalInstallerScript
         } #END IF
 
 
+
+
+
         JLoader::registerNamespace('GNZ11', JPATH_LIBRARIES . '/GNZ11', $reset = false, $prepend = false, $type = 'psr4');
-        \GNZ11\Extensions\ScriptFile::updateProcedure($typeExt, $parent);
+        $parent->manifest->name = 'PlgSystemPro_critical';
+       \GNZ11\Extensions\ScriptFile::updateProcedure($typeExt, $parent);
         return true;
     }
 
