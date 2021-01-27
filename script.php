@@ -36,6 +36,8 @@ class PlgSystemPro_criticalInstallerScript
      * @since 3.9
      */
     const Gnz11InstallUrl = 'https://github.com/gartes/GNZ11/archive/master.zip';
+
+    public static $RemoveFiles = [] ;
     /**
      * Минимальная требуемая версия библиотеки GNZ11
      * @var string
