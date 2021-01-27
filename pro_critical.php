@@ -23,7 +23,8 @@
 	
 	
 	use Joomla\CMS\Application\CMSApplication;
-	use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Factory as JFactory;
+use Joomla\CMS\Plugin\CMSPlugin;
 	
 	/**
 	 * System - Pro_critical plugin.
@@ -78,50 +79,15 @@
 		 */
 		public function onAfterInitialise ()
 		{
-            $this->params->set('is_none_component' , false ) ;
+            JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
             JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
 
-
-            try
+            if ( \Joomla\CMS\Factory::getDocument()->getType() !== 'html' )
             {
-//                $com_pro_criticalParams = JComponentHelper::getParams('com_pro_critical');
-                $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
-            }
-            catch (Exception $e)
-            {
-                switch ($e->getCode()){
-                    # Если компонент не  установлен
-                    case 1000:
-                        if( !\Joomla\CMS\Filesystem\Folder::exists( $this->patchGnz11 ) && $this->app->isClient('administrator') )
-                        {
-                            $this->app->enqueueMessage($e->getMessage() , 'error');
-                        }
-                        $this->params->set('is_none_component' , true ) ;
-                        $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
-                }
-            }
-
-            try
-			{
-                JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
-            }
-			catch( Exception $e )
-			{
-			    switch ($e->getCode()){
-
-                    default:
-                        if( !\Joomla\CMS\Filesystem\Folder::exists( $this->patchGnz11 ) && $this->app->isClient('administrator') )
-                        {
-                            $this->app->enqueueMessage('Должна быть установлена бибиотека GNZ11' , 'error');
-                            $this->SLEEP = true;
-                            return;
-                        }#END IF
-                        $this->SLEEP = true;
-                        throw new Exception('Exception : Должна быть установлена бибиотека GNZ11' , 500 ) ;
-
-                }
-            }
-		}
+                $this->SLEEP = true;
+                return;
+            }#END IF
+        }
 		
 		/**
 		 * Route the application.
@@ -132,8 +98,17 @@
 		public function onAfterRoute ()
 		{
 			if( $this->SLEEP ) return false ; #END IF
-			
-			return true;
+
+            $data = [
+                '__name' => $this->_name ,
+                '__type' => $this->_type ,
+                '__v' => $this->params->get('__v') ,
+            ] ;
+
+            \Joomla\CMS\Factory::getDocument()->addScriptOptions('pro_critical' , $data , true ) ;
+            $this->params->set('is_none_component' , false ) ;
+            $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+            return true;
 		}
 		
 		/**
@@ -147,6 +122,7 @@
 		 */
 		public function onBeforeCompileHead ()
 		{
+
             if( $this->SLEEP ) return false ; #END IF
             try
             {
@@ -161,7 +137,9 @@
             }
             return true;
 		}
-		
+
+		public function onContentPrepare( $context, $article, $params){ }
+
 		/**
 		 * Trigger the onBeforeRender event.
 		 * Рендеринг - это процесс вставки буферов документов в шаблон.
@@ -170,7 +148,7 @@
 		 *
 		 * @since 3.2
 		 */
-		public function onBeforeRender(){ }
+		public function onBeforeRender(){}
 		
 		/**
 		 * Trigger the onAfterRender event.
@@ -181,19 +159,13 @@
 		 */
 		public function onAfterRender ()
 		{
+
             if( $this->SLEEP ) return false ; #END IF
 			# Если Админ Панель
 			if( $this->app->isClient( 'administrator' ) ) return true; #END IF
-
             $this->Helper->AfterRender();
-
-			// Access to plugin parameters
-			// $sample = $this->params->get( 'sample' , '42' );
-			
-			return true;
+            return true;
 		}
-		
-		
 		
 		/**
 		 * Trigger the onAfterCompress event.
@@ -230,7 +202,8 @@
 		 */
 		public function onAjaxPro_critical ()
 		{
-			$this->Helper->onAjax();
+            $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+		    $this->Helper->onAjax();
 			
 		}
 		

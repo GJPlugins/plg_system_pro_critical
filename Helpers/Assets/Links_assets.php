@@ -124,17 +124,16 @@
             return $dataLink;
         }
 
-		/**
-		 * Проверка хоста ссылки локалный или внешний
-		 * @param          $href
-		 *
-		 * @return bool - если локальный TRUE иначе FALSE
-		 *
-		 * @since 3.9
-		 */
-		protected function checkLocalHost ( $href    )
+        /**
+         * Проверка хоста ссылки локалный или внешний.
+         * Работает точнее для Joomla чем метод \GNZ11\Core\Filesystem\File::isInternal()
+         * @param string $href ссылка
+         * @return bool - если локальный TRUE иначе FALSE
+         * @since 3.9
+         */
+		protected function checkLocalHost ( string $href )
 		{
-		    $protocol = parse_url( $href );
+            $protocol = parse_url( $href );
             if(  !isset($protocol[ 'host' ]) )
             {
                 return true ;
@@ -148,7 +147,18 @@
 			}
 			return true ;
 		}
-		
+
+		public static function cleanLocalLink($link){
+            # убираем домен
+            # Оставляем только путь к файлу от корня сайта так как - сайт может находится в директории домена
+            # и путь к файлу без ведущего слеша
+            $link = str_replace( \Joomla\CMS\Uri\Uri::root() , '' , $link )  ;
+            $link = str_replace( \Joomla\CMS\Uri\Uri::root(true) , '' , $link )  ;
+            # Убрать слеши по краям
+            $link  =  trim($link, '/');
+            return $link ;
+        }
+
 		/**
 		 * Разбор ссылки - поиск ошибок - исправление ссылки - определение локальная ссылка или нет
 		 * @param $href
@@ -157,7 +167,7 @@
 		 *
 		 * @since 3.9
 		 */
-		public function linkAnalysis ( $href  )
+		public function linkAnalysis ( $href   )
 		{
 			
 			$config = \Joomla\CMS\Factory::getConfig();
@@ -182,14 +192,18 @@
 				$log[ 'err' ][] = 'В ссылке присутствую пробелы это може привести к ошибкам';
 			}#END IF
 			
+            # проверка на русские буквы
 			if( preg_match( "/[а-яё]+/iu" , $href ) )
 			{
 				$log[ 'err' ][] = 'В ссылке присутствую русские буквы.';
 			}
-			
-			$protocol             = parse_url( $href );
+
+			# Проверка хоста ссылки локалный или внешний.
 			$isLocalHost          = $this->checkLocalHost( $href );
-			
+
+
+            $protocol             = parse_url( $href );
+
 			# Проверка протокола
 			if( !isset( $protocol[ 'scheme' ] ) )
 			{
@@ -237,10 +251,7 @@
 					$log['absolute_path'] = true ;
 				}#END IF
 			}#END IF
-			
-
-			
-			
+		
 			# Проверка path
 			if( stristr( $protocol[ 'path' ] , '//' ) )
 			{
@@ -258,25 +269,18 @@
 					$href           = '/' . $protocol[ 'host' ] . $protocol[ 'path' ];
 				}#END IF
 			}
-			
-			
-			
+
 			$log [ 'file' ]     = $href;
 			$log [ 'no_external' ] = $isLocalHost;
 			$log [ 'protocol' ] = $protocol;
-			
-			
-			
+
 			if( count( $log[ 'err' ] ) )
 			{
 				$log [ 'err_href' ] = $copyOrigHref;
 				$log [ 'is_error' ] = true;
 				$log [ 'err_path_log' ] = implode("\n" , $log[ 'err' ] );
 			}#END IF
-			
-			
-			
-			
+
 			return $log ;
 		}
 

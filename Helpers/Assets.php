@@ -38,12 +38,12 @@ class Assets
      * @var array Коллекция JS CSS Ресурсов
      * @since 3.9
      */
-    public static $AssetssColection = [] ;
+    public static $AssetssCollection = [] ;
     /**
      * @var \GNZ11\Document\Dom объект с телом страницы
      * @since 3.9
      */
-    protected static $dom;
+    public static $dom;
     /**
      * @var array[] массив хеш найденных ресурсов
      * @since 3.9
@@ -55,15 +55,23 @@ class Assets
         'scriptDeclaration' => [] ,
         ];
     /**
+     * @var array хранилище путей к файлам от корня сайта - для поиска файлов в справочнике
+     * @since 3.9
+     */
+    private static $HashFileArray = [
+        'link' => [] ,
+        'script' => [] ,
+        ];
+    /**
      * @var CMSApplication|null
      * @since 3.9
      */
-    private $app;
+    protected $app;
     /**
      * @var \JDatabaseDriver|null
      * @since 3.9
      */
-    private $db;
+    protected  $db;
     /**
      * Array to hold the object instances
      *
@@ -100,7 +108,7 @@ class Assets
         $this->app = Factory::getApplication();
         $this->db = Factory::getDbo();
 
-        BaseDatabaseModel::addIncludePath( JPATH_ADMINISTRATOR . DS . 'components' . DS . 'com_' . Helper::$component . DS . 'models' , Helper::$prefix );
+        BaseDatabaseModel::addIncludePath( JPATH_ADMINISTRATOR . DIRECTORY_SEPARATOR . 'components' . DIRECTORY_SEPARATOR . 'com_' . Helper::$component . DIRECTORY_SEPARATOR . 'models' , Helper::$prefix );
         $this->CssFileListModel = BaseDatabaseModel::getInstance( 'Css_file_list' , Helper::$prefix );
         $this->cssStyleListModel = BaseDatabaseModel::getInstance( 'Css_style_list' , Helper::$prefix );
 
@@ -110,6 +118,9 @@ class Assets
 
         # Установить лимит 0 для того чтобы выбрать все данные из справичников
         $this->app->input->set('limit', 0);
+
+        \Plg\Pro_critical\Helpers\Assets\Css_critical::instance( self::$params );
+
 
     }
     /**
@@ -127,6 +138,19 @@ class Assets
         }
         return self::$instance;
     }#END FN
+
+    /**
+     * Загрузка тела страницы в DOMDocument
+     * @since 3.9
+     * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+     * @date 29.11.2020 00:02
+     *
+     */
+    public  function InitDOM(){
+        self::$dom = new \GNZ11\Document\Dom();
+        $body = $this->app->getBody();
+        self::$dom->loadHTML($body);
+    }
 
     /**
      * Извлечение всех ресурсов JS && CSS Со траницы
@@ -151,19 +175,23 @@ class Assets
         {
         }
 
-        $xpathQuery = [] ;
-        $xpathQuery[] = ( self::$params->get('JS_On' , false ) ? '//script' : null ) ;
-        $xpathQuery[] = ( self::$params->get('CSS_On' , false ) ? '//link[@rel="stylesheet"]|//style' : null ) ;
 
+        $xpathQuery = false ;
+        if ( self::$params->get('JS_On' , false ) )
+        {
+            $xpathQuery[] = '//script[not(@data-not-interact)]' ;
+        }#END IF
+        if (self::$params->get('CSS_On' , false ) )
+        {
+            $xpathQuery[] = '//link[@rel="stylesheet" and not(@data-not-interact)]|//style'  ;
+        }#END IF
 
+//        self::$dom = new \GNZ11\Document\Dom();
+//        $body = $this->app->getBody();
+//        self::$dom->loadHTML($body);
 
-        self::$dom = new \GNZ11\Document\Dom();
-        $body = $this->app->getBody();
-        self::$dom->loadHTML($body);
         $xpath = new \DOMXPath(self::$dom);
         $Nodes = $xpath->query( implode('|' , $xpathQuery) );
-
-
 
         foreach ($Nodes as $node)
         {
@@ -172,7 +200,7 @@ class Assets
                     $type = 'text/css' ;
                     $attr = self::$dom::getAttrElement($node, []);
 
-                    if (!isset( $attr['href'] )) continue ; #END IF
+                    if ( !isset( $attr['href'] ) ) continue 2 ; #END IF
 
                     $hash =  md5( $attr['href'] ) ;
 
@@ -209,14 +237,24 @@ class Assets
                         $link['params_query'] = $Links_assets->parseRequestParameters($hrefArr, $link, $href);
                     }#END IF
 
+                    # Очистить ссылку : Оставляем только путь к файлу от корня сайта
+                    $link['file'] = $Links_assets::cleanLocalLink( $link['file'] );
+                    $link['minify_file'] = $Links_assets::cleanLocalLink( $link['minify_file'] );
+
                     # Записываем статистику
                     self::$statistics['errors'] += (count($log['err']));
 
-                    # Записываем в справочник ресурсов
-                    self::$AssetssColection['link'][$hash] = $link ;
 
-                    # Записываем hash
+                    # Записываем в справочник ресурсов
+//                    self::$AssetssCollection['link'][$hash] = $link ;
+                    # Записываем в справочник ресурсов
+                    $key = $link['file'] ;
+                    self::$AssetssCollection['link'][ $key ] = $link;
+
+
+                    # Записываем hash link
                     self::$HashArray['link'][] = $hash ;
+                    self::$HashFileArray['link'][] = $link['file'] ;
 
                     # Удаление найденого узла ##########################
                     $node->parentNode->removeChild($node);
@@ -225,7 +263,7 @@ class Assets
                 case 'style' :
                     $hash = md5($node->nodeValue);
                     # Записываем в справочник ресурсов
-                    self::$AssetssColection['style'][$hash] = [
+                    self::$AssetssCollection['style'][$hash] = [
                         'load' => 1,
                         'content' => $node->nodeValue,
                         'hash' => $hash,
@@ -243,8 +281,7 @@ class Assets
                     # Удаление найденого узла ##########################
                     $node->parentNode->removeChild($node);
                     break ;
-
-                    # SJ Скрипты
+                    # JS Скрипты
                 default :
                     #Получить атрибуты
                     $excludeAttr=[];
@@ -253,12 +290,17 @@ class Assets
                     # JS Файлы
                     if( isset($attr['src']) )
                     {
-
                         # Для ссылок на JS файлы
-                        $hash = md5($attr['src']);
+
+                        # Создаем hash от полной ссылкм в мести с медиа запросом
+                        # так как вслучае если файл обновили то должен измениться и hash
+                        $hash = md5( $attr['src'] );
+
+                        # Отделить ссылку от GET запроса
                         $hrefArr = explode('?', $attr['src']);
                         # Разбор ссылки - поиск ошибок - исправление ссылки - определение локальная ссылка или нет
                         $log = $Links_assets->linkAnalysis($hrefArr[0]);
+
                         $href = $log['file'];
 
                         $link = [];
@@ -274,30 +316,41 @@ class Assets
                         $link['override'] = null ;
                         $link = array_merge($link, $log);
 
-
-                        # Добавляем найденные арибуты
+                        # Добавляем найденные арибуты кроме существенных которые перечислены а $excludeAttr
                         $excludeAttr = ['type' , 'src', 'async', 'defer'] ;
+
                         # Фильтрация элементов с определенными именами ключей
                         $attr   = \GNZ11\Document\Arrays::filterElemByKey($attr , $excludeAttr ) ;
                         $link['attrs'] = (!empty( $attr ) ? json_encode( $attr )  : null ) ;
 
 
-
                         $link = array_merge($link, $attr);
-                        # Если есть параметры в ссылке
+
+                        # Если есть параметры в ссылке то что находится после (?)
                         if( isset($hrefArr[1]) )
                         {
                             # Разобрать параметры ссылки
                             $link['params_query'] = $Links_assets->parseRequestParameters($hrefArr, $link, $href);
                         }#END IF
 
-                        # Записываем статистику
-                        self::$statistics['errors'] += (count($log['err']));
-                        # Записываем в справочник ресурсов
-                        self::$AssetssColection['script'][$hash] = $link;
-                        # Записываем hash
-                        self::$HashArray['script'][] = $hash ;
+                        # Очистить ссылку : Оставляем только путь к файлу от корня сайта
+                        $link['file'] = $Links_assets::cleanLocalLink( $link['file'] );
+                        $link['minify_file'] = $Links_assets::cleanLocalLink( $link['minify_file'] );
 
+
+
+
+
+                        # Записываем в справочник ресурсов
+                        $key = $link['file'] ;
+                        self::$AssetssCollection['script'][ $key ] = $link;
+
+                        # Записываем статистику
+                        self::$statistics['errors'] += ( count( $log['err'] ) );
+
+                        # Записываем hash в хранилище - для поиска файлов в справочнике
+                        self::$HashArray['script'][] = $hash ;
+                        self::$HashFileArray['script'][] = $key ;
                     }
                     # для JS скриптов
                     else
@@ -308,7 +361,7 @@ class Assets
                         # Фильтрация элементов с определенными именами ключей
                         $attr   = \GNZ11\Document\Arrays::filterElemByKey($attr , ['type'] ) ;
                         # Добавляем найденные арибуты
-                        self::$AssetssColection['scriptDeclaration'][$hash] = [
+                        self::$AssetssCollection['scriptDeclaration'][$hash] = [
                             'load' => 1,
                             'hash' => $hash ,
                             'content' => $node->nodeValue,
@@ -319,39 +372,39 @@ class Assets
                         self::$HashArray['scriptDeclaration'][] = $hash ;
                     }#END IF
 
-
                     # Если переносить скрипты вниз страницы
                     if( self::$params->get('moving_scripts_to_bottom' , false ) )
                     {
                         # Удаление найденого узла ##########################
                         $node->parentNode->removeChild($node);
                     }#END IF
-
-
-
-
             }#END SWITCH
-        }
+        }#END FOREACH
 
         # Получить данные из справочника для <link Css />
         $linkDbList = $this->getItemTableData('link') ;
+
         # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
-        $this->getNewAssets( 'link' , $linkDbList );
+        $this->getNewAssets( 'link' , (array)$linkDbList);
+
+
+
 
         # Получить данные из справочника для <Style Css />
         $styleDbList = $this->getItemTableData('style') ;
         # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
-        $this->getNewAssets( 'style' , $styleDbList );
+        $this->getNewAssets( 'style' , (array)$styleDbList);
 
         # Получить данные из справочника для <script />
         $scriptDbList = $this->getItemTableData('script') ;
+
         # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
-        $this->getNewAssets( 'script' , $scriptDbList );
+        $this->getNewAssets( 'script' , (array)$scriptDbList);
 
         # Получить данные из справочника для <script Declaration/>
         $scriptDeclarationDbList = $this->getItemTableData('scriptDeclaration') ;
         # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
-        $this->getNewAssets( 'scriptDeclaration' , $scriptDeclarationDbList );
+        $this->getNewAssets( 'scriptDeclaration' , (array)$scriptDeclarationDbList);
     }
 
     public function setAssetsToPage(){
@@ -369,11 +422,15 @@ class Assets
      *
      */
     protected function getAttr($Object){
-        if(  empty( $Object->attrs ) ) return [] ; #END IF
 
+
+        if(  empty( $Object->attrs ) ) return [] ; #END IF
+         
+
+        
+        
         $Registry = new Registry( $Object->attrs );
         return $Registry->toArray() ;
-
     }
 
     /**
@@ -425,54 +482,87 @@ class Assets
         return $file ;
     }
 
+
+
     /**
      * Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
-     * @param $view string Псевдоним вида
+     * @param string    $view   тип ресурса   link | script
+     * @param array     $DbList массив данных из справичника этого типа
      * @throws Exception
      * @since 3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
      * @date 24.08.2020 21:40
-     *
      */
-    protected function getNewAssets( $view , $DbList ){
+    protected function getNewAssets(string $view, array $DbList){
+
+        if (!isset( self::$AssetssCollection[$view] )) return ;  #END IF
+
+
+
+
 
         $Query = $this->db->getQuery(true) ;
         $tbl = self::getTbl($view) ;
+
         $excludeFields=[ 'err','protocol','absolute_path', 'href'  ];
-        $firstElement = reset(self::$AssetssColection[$view] );
-
-
+        $firstElement = reset(self::$AssetssCollection[$view] );
+        # Создать список полей из ключей первого элемента для добавления в корзину
         foreach( $firstElement as $key => $itemFile )
         {
             if(  in_array( $key , $excludeFields ) ) continue ; #END IF
             $columns[]= $key ;
         }#END FOREACH
 
-        
+
+
 
         # Индикатор добавления в DB
         $addDB = false ;
-        foreach ( self::$AssetssColection[$view] as $hash => &$data ){
 
-            
-            # Если есть параметры для найденного рессурса замещаем - параметрами
+
+
+
+
+
+
+
+        # Перебрать рессурсы
+        foreach (self::$AssetssCollection[$view] as $hash => &$data ){
+
+
+
+
+
+            # TODO - Добавить проверку по хешу - в случае изменения медиа версии после редактирования
+            # Если этот ресурс уже был сохранен в справочнике и у него установлен параметр не загружать
+            # то удаляем его из кандидатов на запись в справочник
+            # Если данные в справочнике не найдены - подготовка добавления в DB
             if( key_exists($hash, $DbList) )
             {
-                $data = $DbList[$hash];
-                # Если установлено не загружать для этого рессурса
-                if( !$data->load )
+                if( !$DbList[$hash]->load )
                 {
-                    unset( self::$AssetssColection[$view][$hash] );
+                    unset( self::$AssetssCollection[$view][$hash] );
+                    continue ;
                 }#END IF
+
+                self::$AssetssCollection[$view][$hash] = $DbList[$hash] ;
+
             }
-            #Если данные в справочнике не найдены - подготовка добавления в DB
             else
             {
 
                 $excludeLinesArr = self::$params->get('exclude_dynamic_lines_'.$view , [] ) ;
                 $Registry = new Registry($excludeLinesArr) ;
                 $Arr = $Registry->toArray() ;
-                $mapArr = array_map(function($key, $value) {return $value['text'];}, array_keys($Arr), $Arr);
+                $mapArr = array_map(
+                    function($key, $value) {
+                        return $value['text'];
+                    },
+                    array_keys($Arr),
+                    $Arr
+                );
+
+
 
 
                 switch ($view){
@@ -482,7 +572,7 @@ class Assets
                     default: $testStr = false ;
                 }
 
-                # Проверяем на исключение записи в DB ( Component Config )
+                # Проверяем на исключение записи в DB ( Component Config ) для scriptDeclaration
                 if( $testStr )
                 {
                     # Найти подстроку из массива в заданной строке
@@ -495,32 +585,45 @@ class Assets
                     } #END IF
                 }#END IF
 
+
                 $addDB = true ;
                 # Фильтрация элементов с определенными именами ключей
                 $valuesArr   = \GNZ11\Document\Arrays::filterElemByKey($data , $excludeFields ) ;
 
-                $obsoleteQuoted = array_map(array( $this->db , 'quote'),  $valuesArr );
+                $obsoleteQuoted = array_map( array( $this->db , 'quote'),  $valuesArr );
                 $Query->values( implode( "," , $obsoleteQuoted ) . PHP_EOL );
             }#END IF
 
             #Переводим в обьект новые найденные ресурсы
             \GNZ11\Document\Arrays::arrToObj( $data ) ;
 
-
         }#END FOREACH
 
 
 
 
-
-
-
+        # Если ни чего не найдено для записи
         if( !$addDB ) return ; #END IF
-        
 
-        
-        
+
+
+
+
+
+
+
+
+
         $Query->insert( $this->db->quoteName( $tbl ) )->columns( $this->db->quoteName( $columns ) );
+
+        if ($view == 'link') {
+//            echo'<pre>';print_r( $Query->dump() );echo'</pre>'.__FILE__.' '.__LINE__;
+//            echo'<pre>';print_r( $tbl );echo'</pre>'.__FILE__.' '.__LINE__;
+//            echo'<pre>';print_r( $addDB );echo'</pre>'.__FILE__.' '.__LINE__;
+//            echo'<pre>';print_r( $view );echo'</pre>'.__FILE__.' '.__LINE__;
+//            die(__FILE__ .' '. __LINE__ );
+        }#END IF
+
         $this->db->setQuery( $Query );
         try
         {
@@ -538,7 +641,7 @@ class Assets
     }
 
     /**
-     * Получить назыание таблицы по Псевдониму вида
+     * Получить название таблицы по Псевдониму вида
      * @param $view string Псевдоним вида
      * @return string
      * @throws Exception
@@ -569,30 +672,79 @@ class Assets
 
     /**
      * Получить настройкм из DB для отбранных рессурсов
-     * @param $view
-     * @return array - Ресурсов с настройками
+     * @param $typeAsset - Тип ресурса
+     * @return void|Object - Ресурсов с настройками
      * @throws Exception
      * @since 3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
      * @date 24.08.2020 21:49
      *
      */
-    protected function getItemTableData($view){
-        $tbl = self::getTbl($view) ;
-        $obsoleteIDsQuoted = array_map( array( $this->db , 'quote' ), self::$HashArray[$view]);
+    protected function getItemTableData($typeAsset){
+        $res = new \stdClass();
+        if ( empty(self::$HashArray[$typeAsset] ) ) return  $res ; #END IF
+
+
+
+        $tbl = self::getTbl($typeAsset) ;
+
         $Query = $this->db->getQuery(true);
         $Query->select('*')
             ->from( $this->db->quoteName($tbl) )
-            ->where( $this->db->quoteName('hash') . 'IN ('.implode(',' , $obsoleteIDsQuoted  ).')' )
             ->where( $this->db->quoteName('published') . '= 1 ' );
+
+
+        if ( !empty(self::$HashFileArray[$typeAsset] ) ) {
+            # Поиск через Путь к файлу  -
+            $key = 'file';
+            # применяем метод quote к каждому елементу массива
+            $obsoleteIDsQuoted = array_map( array( $this->db , 'quote' ), self::$HashFileArray[$typeAsset] );
+        }else{
+            # Поиск по хешу -
+            $key = 'hash';
+            # применяем метод quote к каждому елементу массива
+            $obsoleteIDsQuoted = array_map( array( $this->db , 'quote' ), self::$HashArray[$typeAsset]);
+        }#END IF
+
+        $Query->where( $this->db->quoteName($key) . 'IN ('.implode(',' , $obsoleteIDsQuoted  ).')' );
+
+
+
+
+
         $this->db->setQuery($Query);
-        $res = $this->db->loadObjectList('hash') ;
+        $res = $this->db->loadObjectList($key) ;
+
+        if ($typeAsset == 'link') {
+//            echo'<pre>';print_r( $res );echo'</pre>'.__FILE__.' '.__LINE__;
+//            die(__FILE__ .' '. __LINE__ );
+
+        }#END IF
+
 
         return $res ;
     }
 
     public function saveBody(){
-        $body = self::$dom->saveHTML();
+        if (!self::$dom ) return ;  #END IF
+
+        $scriptTask = [
+            'html' => \Plg\Pro_critical\Html::$addJsTask ,
+            'Css' => \Plg\Pro_critical\Helpers\Assets\Css::$addJsTask ,
+        ] ;
+
+
+
+
+        $attr = [
+            'type'=> 'application/json' ,
+            'id'=> 'pro_critical-script-Task' ,
+        ];
+        $content =  json_encode( $scriptTask ) ;
+        self::$dom::writeDownTag ( self::$dom , 'script' , $content , $attr );
+
+
+        $body = self::$dom->saveHTML(); 
         $this->app->setBody($body);
     }
     

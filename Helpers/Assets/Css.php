@@ -18,7 +18,8 @@
 	use JDate;
     use Joomla\CMS\Factory;
     use Joomla\CMS\Uri\Uri;
-	use Throwable;
+    use Joomla\Registry\Registry;
+    use Throwable;
 	
 	/**
 	 * @since       version
@@ -29,10 +30,12 @@
 	{
 
 		public static $instance;
-		
-		/*public $statistics = [
-		    'errors' => 0 ,
-        ];*/
+
+        /**
+         * @var array Хранение JS данных о задачах для Front
+         * @since 3.9
+         */
+        public static $addJsTask = [] ;
 		
 		public $BASE_LINK;
 		
@@ -106,400 +109,107 @@
          */
         public function setCss(){
 
-            foreach ( self::$AssetssColection['link']  as $item)
+            if (!isset( self::$AssetssCollection['link'] )) return ; #END IF
+
+            # Проверить Если не созданы CCSS
+            $checkCCSS = \Plg\Pro_critical\Helpers\Assets\Css_critical::checkCriticalCssData() ;
+            # Если созданы CCSS - Добаавляем их первыми
+            if ( $checkCCSS )
             {
+                $DataCCSS = \Plg\Pro_critical\Helpers\Assets\Css_critical::$CriticalCssData ;
+                $DataCCSS->critical_css_code .= $DataCCSS->add_css_code ;
+
+
+                $attr = null ;
+                self::$dom::_setBottomHeadTag ( self::$dom , 'style' , $DataCCSS->critical_css_code , $attr );
+            }#END IF
+
+
+            $loadLaterCss = [];
+            foreach ( self::$AssetssCollection['link'] as $item)
+            {
+                if ( !$item->load ) continue ; #END IF
+                # Если созданны CCSS и не Загружать с Critical Css
+                if ( $checkCCSS && !$item->load_if_criticalis_set  ) continue; #END IF
+
                 $attr = $this->getAttr( $item ) ;
-                $attr['href'] = $this->getFile( $item );
                 $attr['rel']  ="stylesheet";
 
+                $file = $this->getFile( $item );
 
-                self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
+                # для создания ссылки к файлу убираем домен
+                $file = str_replace( \Joomla\CMS\Uri\Uri::root() , '' , $file)  ;
+                $file = str_replace( \Joomla\CMS\Uri\Uri::root(true) , '' , $file )  ;
+                # Если путь начатается с '/'
+                if (strpos( $file , '/') === 0) {
+                    $file = ltrim( $file, '/' ) ;
+                }
+
+                $attr['href'] = \Joomla\CMS\Uri\Uri::root() . $file ;
+
+
+                # Если CCSS не созданы - добавляем  как есть
+                if (!$checkCCSS)
+                {
+                    self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
+                    continue ;
+                }#END IF
+
+                
+                unset( $attr['rel'] ) ;
+                $loadLaterCss[] = $attr ;
             }#END FOREACH
-            foreach ( self::$AssetssColection['style']  as $item)
+
+            $loadLaterCssStyle = [] ;
+            foreach (self::$AssetssCollection['style'] as $item)
             {
                 $attr = $this->getAttr( $item ) ;
+
                 # Если TYPE рессурса не из исключенных добавляем его к атрибутам
                 !in_array( $item->type,$this->excludedTypes )?$attr['type']=$item->type:null;
-                
-                
+
+                if (!is_array( $item ))
+                {
+                    $Registry = new Registry($item);
+                    $item = $Registry->toArray();
+                }#END IF
+
+                if ( empty( trim( $item['content'] ) )) continue ; #END IF
+
+                if ( !$checkCCSS )
+                {
+                    self::$dom::_setBottomHeadTag ( self::$dom , 'style' , $item['content'] , $attr );
+                    continue ;
+                }#END IF
 
 
-                
-                self::$dom::_setBottomHeadTag ( self::$dom , 'style' , $item->content , $attr );
+                $loadLaterCssStyle[] = [ 'content' => $item['content'] , 'attr' => $attr ]  ;
             }#END FOREACH
 
+            
+            # Если в настройках копонентеа установлено создавать прелоадер
+            if ( self::$params->get('ccss_add_preloader_ccs_link' , true ) )
+            {
+                $RevLoadLaterCss = array_reverse( $loadLaterCss );
+                foreach ( $RevLoadLaterCss as $attr)
+                {
+                    # Создать предварительную загрузку ключевых запросов
+                    $attr['rel'] = 'preload' ;
+                    $attr['as'] = 'style' ;
+//                    self::$dom::_setTopHeadTag( self::$dom , 'link',  '',  $attr   );
+//                    self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
 
+                }#END FOREACH
+
+//                unset( $attr['as'] ) ;
+            }#END IF
+
+//            self::$addJsTask['loadLaterCss']['link'] = $loadLaterCss ;
+            self::$addJsTask['loadLaterCss']['stile'] = $loadLaterCssStyle ;
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		/**
-		 * Найти и извлечь все ссылки на CSS файлы и теги стили
-		 * Добавить новые данные в справочники.
-		 * Совместить найденые данные с настройками компонента
-		 *
-		 * @throws Exception
-		 * @since 3.9
-		 */
-		/*public function getFileList ()
-        {
-            $app = JFactory::getApplication();
-            $Links_assets = \Plg\Pro_critical\Helpers\Assets\Links_assets::instance();
-
-
-            # Установить лимит 0 для того чтобы выбрать все данные из справичников
-            # по умолчанию количество записей == 20
-            $app->input->set('limit', 0);
-            # Загрузить все данные из справочника CSS FILE
-            $Css_file_list = $this->Css_file_list->getItems(true);
-            # Загрузить все данные из справочника CSS STYLE LIST
-            $cssStileList = $this->cssStileListModel->getItems(true);
-
-
-            $body = $this->app->getBody();
-
-            # Найти все Style элементы в теле страницы
-            $dom = new \GNZ11\Document\Dom();
-            $dom->loadHTML($body);
-            $xpath = new \DOMXPath($dom);
-            $Nodes = $xpath->query('//link[@rel="stylesheet"]|//style');
-            $link = [];
-            $styleTag = [];
-            foreach ($Nodes as $node)
-            {
-                switch ($node->tagName)
-                {
-                    case 'link':
-                        $attr = $dom::getAttrElement($node, ['rel']);
-                        $hrefArr = explode('?', $attr['href']);
-                        unset($attr['href']);
-                        $href = $hrefArr[0];
-                        # Разбор ссылки - поиск ошибок - исправление ссылки - определение локальная ссылка или нет
-                        $log = $Links_assets->linkAnalysis($href);
-                        $href = $log['file'];
-                        $link[$href] = [];
-                        $link[$href]['load'] = 1;
-                        $link[$href] = array_merge($link[$href], $log);
-                        $link[$href] = array_merge($link[$href], $attr);
-
-                        # Если есть параметры в ссылке
-                        if( isset($hrefArr[1]) )
-                        {
-                            # Разобрать параметры ссылки
-                            $link[$href]['params_query'] = $this->parseRequestParameters($hrefArr, $link, $href);
-                        }#END IF
-
-                        if( !isset($this->statistics['errors']) )
-                        {
-                            $this->statistics['errors'] = 0;
-                        }#END IF
-                        $this->statistics['errors'] += (count($log['err']));
-
-                        // $link[ $href ]['errors'] = $log['err'];
-
-
-                        break;
-                    case 'style' :
-                        $hash = md5($node->nodeValue);
-                        $styleTag[$hash] = ['load' => 1, 'content' => $node->nodeValue, 'hash' => $hash,];
-                        break;
-                }#END SWICH
-
-
-                # Удалить найденый узел
-                $node->parentNode->removeChild($node);
-            }#END FOREACH
-
-            $body = $dom->saveHTML();
-            $this->app->setBody($body);
-
-            $UbdateCssFile = [];
-
-            # Скопировать набор найденых файлов
-            $this->BASE_LINK = $link;
-
-            # Совмещение извлеченных данны с настройкам загрузок
-            foreach ($Css_file_list as $item)
-            {
-                # Если найденный файл есть в справочнике
-                if( isset($link[$item->file]) )
-                {
-                    # Дополняем ссылку данными со справочника
-                    $this->BASE_LINK[$item->file] = $item;
-                    # Исключаем ссылку из добавления в справочник
-                    unset($link[$item->file]);
-
-                    # статистика о загруженнных файлах
-                    $this->statistics['Load_fiels'][] = $item->file;
-
-                    # Сбор сведений статистики о минифицированных фалах
-                    if( $item->minify )
-                        $this->statistics['minifyCount']++;
-                }
-            }#END FOREACH
-
-            #
-            $newStyleTag = [];
-            foreach ($styleTag as $hash => $item)
-            {
-                # Если стиля нет в справочнике - отобрать для добавления
-                if( !isset($cssStileList[$hash]) )
-                {
-                    $newStyleTag[$hash] = $item;
-                }#END IF
-            }#END FOREACH
-
-
-            # STAT - новые найденые файлы
-            $this->statistics['New_fiels'] = array_keys($link);
-            # STAT - файлы которые будут загружены
-            $this->statistics['Load_fiels'] = array_keys($this->BASE_LINK);
-
-            # Добавить в справочник новые найденные файлы
-            $this->addNewLink($link);
-
-            # Добавить в справочние CSS Стилей новые найденые
-            $this->addNewTagStyle($newStyleTag);
-        }*/
-
-        /**
-         * Добавить в справочние CSS Стилей новые найденые
-         * @param array $styleTag
-         * @return bool
-         * @since 3.9
-         * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
-         * @date 24.08.2020 17:32
-         *
-         */
-		/*protected function addNewTagStyle( $styleTag = array() ){
-			
-			$excludeFields=['err','protocol','absolute_path',  ];
-			
-			if( !count( $styleTag ) ) return true;
-			
-			$db = \Joomla\CMS\Factory::getDbo();
-			$query   = $db->getQuery( true );
-			$jdata   = new JDate();
-			$now     = $jdata->toSql();
-			$userId  = JFactory::getUser()->id;
-			
-			$columns = [] ;
-			$firstElement = reset($styleTag );
-
-
-
-			foreach( $firstElement as $key => $itemFile )
-			{
-				if(  in_array( $key , $excludeFields ) ) {
-					continue ;
-				}#END IF
-				$columns[]= $key ;
-			}#END FOREACH
-			
-			$realColumns = $columns ;
-			
-			$columns[] = 'created_by';
-			$columns[] = 'created';
-			
-			foreach( $styleTag as  $itemFile )
-			{
-				$valuesArr =[] ;
-				foreach( $realColumns as $key   )
-				{
-					$item = $itemFile[$key] ;
-					$valuesArr[] =  $db->quote( $item ) ;
-					
-				}#END FOREACH
-				$valuesArr[] = $db->quote( $userId ) ;
-				$valuesArr[] = $db->quote( $now ) ;
-				$query->values( implode( "," , $valuesArr) );
-			}//foreach
-			
-			$query->insert( $db->quoteName( '#__pro_critical_css_style' ) )
-                ->columns( $db->quoteName( $columns ) );
-			$db->setQuery( $query );
-			
-			try
-			{
-				// Code that may throw an Exception or Error.
-				$db->execute();
-			}
-			catch( \Exception $e )
-			{
-				// Executed only in PHP 5, will not be reached in PHP 7
-				echo 'Выброшено исключение: ' , $e->getMessage() , "\n";
-				echo'<pre>';print_r(  $e );echo'</pre>'.__FILE__.' '.__LINE__;
-				die(__FILE__ .' '. __LINE__ );
-			}
-			catch( \Throwable $e )
-			{
-				// Executed only in PHP 7, will not match in PHP 5
-				echo 'Выброшено исключение: ' , $e->getMessage() , "\n";
-				echo '<pre>'; print_r( $e ); echo '</pre>' . __FILE__ . ' ' . __LINE__;
-				die( __FILE__ . ' ' . __LINE__ );
-			}
-			
-			return true;
-			
-
-		}*/
 		
-		
-		/**
-		 * Установить в HTML ссылки на Css файлы и стили
-		 *
-		 * @throws Exception
-		 * @since version
-		 */
-		/*public function insertStylesIntoDocument(){
-			
-			$dom = new \GNZ11\Document\Dom();
-			
-			# Подключить Helper для работы со сылками
-			$Links_assets = \Plg\Pro_critical\Helpers\Assets\Links_assets ::instance() ;
-			
-			# массив для HTML элементов
-			$tagsArr = [] ;
-			foreach( $this->BASE_LINK as $url => $Link )
-			{
-			    if( isset($Link->load)  &&  !$Link->load  ) continue ; #END IF
-				
-				# Пропустить если отложенная загрузка
-				if ( isset($Link->delayed_loading)  && $Link->delayed_loading) continue ; #END IF
-				
-				$Linkcopy = $Link ;
-				unset($Linkcopy->id);
-				$Linkcopy->rel="stylesheet";
-				
-				# Подготовить ссылку к загрузи - определить параметры ссылки
-				$LinkData = $Links_assets->prepareLinkData( $Linkcopy );
-				
-				# установить ссылку вниз Tag Head
-				$dom::writeBottomHeadTag('link' , null , $LinkData );
-			}#END FOREACH
 
-		}*/
-		
-		/**
-		 * Добавить в справочник новые найденные файлы
-		 *
-		 * @param $link
-		 *
-		 * @return bool
-		 *
-		 * @since version
-		 */
-		/*private function addNewLink ( $link , $excludeFields =[] )
-		{
-			
-			$excludeFields=['err','protocol','absolute_path',  ];
-			
-			if( !count( $link ) ) return true;
-			
-			$db = JFactory::getDbo();
-			$query   = $db->getQuery( true );
-			$jdata   = new JDate();
-			$now     = $jdata->toSql();
-			$userId  = JFactory::getUser()->id;
-			
-			$columns = [] ;
-			$firstElement = reset($link );
-			
-			foreach( $firstElement as $key => $itemFile )
-			{
-				if(  in_array( $key , $excludeFields ) ) {
-					continue ; 
-				}#END IF
-				$columns[]= $key ; 
-			}#END FOREACH
-			
-			$realColumns = $columns ;
-			
-			$columns[] = 'created_by';
-			$columns[] = 'created';
-			
-			foreach( $link as  $itemFile )
-			{
-				$valuesArr =[] ; 
-				foreach( $realColumns as $key   )
-				{
-					$item = $itemFile[$key] ;
-					$valuesArr[] =  $db->quote( $item ) ;
-					
-				}#END FOREACH
-				$valuesArr[] = $db->quote( $userId ) ;
-				$valuesArr[] = $db->quote( $now ) ;
-				$query->values( implode( "," , $valuesArr) );
-			}#END FOREACH
-			
-			$query->insert( $db->quoteName( '#__pro_critical_css_file' ) )->columns( $db->quoteName( $columns ) );
-			$db->setQuery( $query );
-	 
-			try
-			{
-				// Code that may throw an Exception or Error.
-				$db->execute();
-			}
-			catch( Exception $e )
-			{
-				// Executed only in PHP 5, will not be reached in PHP 7
-				echo 'Выброшено исключение: ' , $e->getMessage() , "\n";
-				echo'<pre>';print_r(  $e );echo'</pre>'.__FILE__.' '.__LINE__;
-				die(__FILE__ .' '. __LINE__ );
-			}
-			catch( Throwable $e )
-			{
-				// Executed only in PHP 7, will not match in PHP 5
-				echo 'Выброшено исключение: ' , $e->getMessage() , "\n";
-				echo '<pre>'; print_r( $e ); echo '</pre>' . __FILE__ . ' ' . __LINE__;
-				die( __FILE__ . ' ' . __LINE__ );
-			}
-			
-			return true;
-		}*/
-		
-		/**
-		 * Разобрать параметры запроса
-		 *
-		 * @param   array  $hrefArr
-		 * @param   array  $link
-		 * @param          $href
-		 *
-		 * @return array
-		 *
-		 * @since version
-		 */
-		protected function parseRequestParameters ( array $hrefArr , array $link , $href )
-		{
-		    die(__FILE__ .' '. __LINE__ );
-
-			$paramHrefArr = explode( '&' , $hrefArr[ 1 ] );
-			$i            = 0;
-            foreach( $paramHrefArr as $item )
-			{
-				$paramArr                                                          = explode( '=' , $item );
-				$nam                                                               = $paramArr[ 0 ];
-				$val                                                               = (isset( $paramArr[ 1 ] ) ? $paramArr[ 1 ] : null );
-				$link[ $href ][ 'params_query' ][ 'params_query' . $i ][ 'name' ]  = $nam;
-				$link[ $href ][ 'params_query' ][ 'params_query' . $i ][ 'value' ] = $val;
-				$i++;
-			}#END FOREACH
-			return json_encode( $link[ $href ][ 'params_query' ] );
-		}
 		
 
 		

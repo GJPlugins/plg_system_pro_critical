@@ -7,7 +7,7 @@
 	<authorUrl>https://nobd.ml</authorUrl>
 	<copyright>Copyright (C) 2019. All Rights Reserved</copyright>
 	<license>GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html</license>
-	<version>1.0.6</version>
+	<version>1.0.8</version>
 	<description>PLG_SYSTEM_PRO_CRITICAL_XML_DESCRIPTION</description>
 	<version_gnz11>0.4.5</version_gnz11>
 	<scriptfile>script.php</scriptfile>
@@ -32,6 +32,7 @@
 		<folder>assets</folder>
 		<folder>Helpers</folder>
 		<folder>language</folder>
+		<folder>matthiasmullie</folder>
 		<folder>sql</folder>
 		<filename>index.html</filename>
 		<filename plugin="pro_critical">pro_critical.php</filename>
@@ -40,6 +41,12 @@
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
+				<fieldset addfieldpath="/libraries/GNZ11/Extensions/Fields" />
+				<field name="__v"
+					type="version"
+					path_xml="/plugins/system/pro_critical/pro_critical.xml"
+					class="version_plugin "
+					filter="raw" />
 				<field name="virtuemart_enable"
 					   type="radio"
 					   default="0"

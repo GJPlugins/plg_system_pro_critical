@@ -1,0 +1,91 @@
+/***********************************************************************************************************************
+ * ╔═══╗ ╔══╗ ╔═══╗ ╔════╗ ╔═══╗ ╔══╗  ╔╗╔╗╔╗ ╔═══╗ ╔══╗   ╔══╗  ╔═══╗ ╔╗╔╗ ╔═══╗ ╔╗   ╔══╗ ╔═══╗ ╔╗  ╔╗ ╔═══╗ ╔╗ ╔╗ ╔════╗
+ * ║╔══╝ ║╔╗║ ║╔═╗║ ╚═╗╔═╝ ║╔══╝ ║╔═╝  ║║║║║║ ║╔══╝ ║╔╗║   ║╔╗╚╗ ║╔══╝ ║║║║ ║╔══╝ ║║   ║╔╗║ ║╔═╗║ ║║  ║║ ║╔══╝ ║╚═╝║ ╚═╗╔═╝
+ * ║║╔═╗ ║╚╝║ ║╚═╝║   ║║   ║╚══╗ ║╚═╗  ║║║║║║ ║╚══╗ ║╚╝╚╗  ║║╚╗║ ║╚══╗ ║║║║ ║╚══╗ ║║   ║║║║ ║╚═╝║ ║╚╗╔╝║ ║╚══╗ ║╔╗ ║   ║║
+ * ║║╚╗║ ║╔╗║ ║╔╗╔╝   ║║   ║╔══╝ ╚═╗║  ║║║║║║ ║╔══╝ ║╔═╗║  ║║─║║ ║╔══╝ ║╚╝║ ║╔══╝ ║║   ║║║║ ║╔══╝ ║╔╗╔╗║ ║╔══╝ ║║╚╗║   ║║
+ * ║╚═╝║ ║║║║ ║║║║    ║║   ║╚══╗ ╔═╝║  ║╚╝╚╝║ ║╚══╗ ║╚═╝║  ║╚═╝║ ║╚══╗ ╚╗╔╝ ║╚══╗ ║╚═╗ ║╚╝║ ║║    ║║╚╝║║ ║╚══╗ ║║ ║║   ║║
+ * ╚═══╝ ╚╝╚╝ ╚╝╚╝    ╚╝   ╚═══╝ ╚══╝  ╚═╝╚═╝ ╚═══╝ ╚═══╝  ╚═══╝ ╚═══╝  ╚╝  ╚═══╝ ╚══╝ ╚══╝ ╚╝    ╚╝  ╚╝ ╚═══╝ ╚╝ ╚╝   ╚╝
+ *----------------------------------------------------------------------------------------------------------------------
+ * @author Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+ * @date 11.10.2020 06:20
+ * @copyright  Copyright (C) 2005 - 2020 Open Source Matters, Inc. All rights reserved.
+ * @license    GNU General Public License version 2 or later;
+ **********************************************************************************************************************/
+.elektro-top-left.dummy {
+    /* display: none; */
+    margin: 10px 30px 30px 0;
+    border-bottom: 1px solid #e9e9e9;
+}
+.elektro-top-left.dummy .uf_buttons{
+    padding-top: 10px;
+    text-align: center;
+}
+.elektro-top-left.dummy .uf_buttons button{
+    background: #e9e9e9;
+    color: transparent;
+    border: none;
+    width: 92px;
+    height: 35px;
+}
+.elektro-top-left.dummy .uf_buttons button.groupbtnright{
+    height: 15px;
+    width: 76px;
+    margin-left: 10px;
+}
+.dummy-filter__heading[_ngcontent-sc98] {
+    width: 74px;
+    height: 14px;
+    border-radius: 4px;
+    background-color: #e9e9e9;
+    margin: 40px 0 30px;
+}
+.dummy-filter__item[_ngcontent-sc98] {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    -ms-flex-direction: row;
+    flex-direction: row;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    margin-bottom: 7px;
+}
+.dummy-filter__dot[_ngcontent-sc98] {
+    -ms-flex-negative: 0;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background-color: #e9e9e9;
+}
+.dummy-filter__line[_ngcontent-sc98] {
+    width: 66%;
+    height: 14px;
+    border-radius: 4px;
+    background-color: #e9e9e9;
+}
+
+.dummy-filter__btn {
+    float: left;
+    width: 100%;
+    display: none;
+}
+.dummy-filter__btn >div.dummy-filter__line {
+   width: 92px;
+   /* height: 36px; */
+}
+
+.dummy-filter__line.btn-a {
+    /* margin-right: 60px; */
+    float: left;
+    margin-left: 71px;
+    height: 36px;
+}
+.dummy-filter__line.btn-b{
+    float: right;
+    margin-right: 22px;
+    height: 10px;
+}

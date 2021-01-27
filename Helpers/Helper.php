@@ -14,9 +14,10 @@
 	
 	// No direct access to this file
 	defined( '_JEXEC' ) or die( 'Restricted access' );
-	
-	/**
-	 * @since       3.9
+
+    /**
+     *
+     * @since       3.9
 	 * @subpackage
 	 *
 	 * @copyright   A copyright
@@ -25,8 +26,20 @@
 	 */
 	class Helper
 	{
+        /**
+         * @var Assets Class обработка рессурсов
+         * @since 3.9
+         */
+	    protected $HelpersAssets ;
+
 		public static $instance;
-		
+        /**
+         * @var string - Ключ страницы
+         * @since 3.9
+         */
+		public static $PageKey ;
+
+
 		private $app;
 		
 		private $params;
@@ -39,9 +52,13 @@
          */
         public static $component = 'pro_critical';
         public static $prefix = 'pro_critical' . 'Model';
+        /**
+         * @var object класс работы с Html заданиями
+         * @since 3.9
+         */
+        protected $HelpersHtml;
 
-		
-		/**
+        /**
 		 * helper constructor.
 		 *
 		 * @param $params
@@ -51,36 +68,37 @@
 		 */
 		private function __construct ( $params  )
 		{
-
-
-
-			
-			$this->app = JFactory::getApplication();
+            $this->app = JFactory::getApplication();
 			$this->params = $params ;
 
+            $this->getPageKey();
+
+            # Если работать по настройкам компонента
 			if( !$this->params->get('is_none_component' , false ) )
             {
                 $Component = ComponentHelper::getComponent('com_pro_critical', $strict = true);
+                # Если компонент не найден
                 if(!$Component->id ){
                     $mes = 'Для правильной работы <b>плагина Pro Critical</b> - должен быть установлен и включен <b>компонент Pro Critical</b>' ;
                     if( $this->app->input->get('format' , 'html' , 'STRING') == 'json' ) {
                         $mes ='';
                     } #END IF
-
-                    //				$this->app->enqueueMessage($mes , 'warning');
                     throw new Exception( $mes , 1000 );
                 }
+
                 $this->paramsComponent = ComponentHelper::getParams( 'com_pro_critical' );
+                // Добавить в настройки компонента параметры плагина
                 $this->paramsComponent->set('plugin_param' , $this->params ) ;
 
-
-
-                JLoader::registerNamespace( 'Com_pro_critical\Helpers' ,
-                    JPATH_ADMINISTRATOR . '/components/com_pro_critical/com_pro_critical/helpers' ,
-                    $reset = false , $prepend = false , $type = 'psr4' );
+                \JLoader::registerNamespace( 'Com_pro_critical\Helpers' ,JPATH_ADMINISTRATOR . '/components/com_pro_critical/com_pro_critical/helpers' , $reset = false , $prepend = false , $type = 'psr4' );
             }#END IF
-            JLoader::registerNamespace('Plg\Pro_critical\Helpers\Assets',JPATH_PLUGINS.'/system/pro_critical/Helpers/Assets',$reset=false,$prepend=false,$type='psr4');
-            return $this;
+
+            JLoader::registerNamespace('Plg\Pro_critical\Helpers\Assets', JPATH_PLUGINS.'/system/pro_critical/Helpers/Assets',$reset=false,$prepend=false,$type='psr4');
+            $this->HelpersAssets = \Plg\Pro_critical\Assets::instance( $this->paramsComponent );
+            $this->HelpersHtml = \Plg\Pro_critical\Html::instance( $this->paramsComponent );
+
+
+			return $this;
 		}#END FN
 	
 		/**
@@ -97,20 +115,87 @@
 			{
 				self::$instance = new self(  $params  );
 			}
-			
 			return self::$instance;
 		}#END FN
 
+        /**
+         * Создать ключ текущей страницы
+         * @since 3.9
+         * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+         * @date 08.10.2020 05:37
+         * TODO Добавить в настройки компонента добавление параметров для создания ключей
+         */
+        public function getPageKey()
+        {
+            
+            $session =  \Joomla\CMS\Factory::getSession() ;
+
+            $list_style = $session->get( 'list_style' , 'tmp_table' );
+
+            if ( !self::$PageKey )
+            {
+                if (!$this->paramsComponent)
+                {
+                    $Component = ComponentHelper::getComponent('com_pro_critical', $strict = true);
+                    $this->paramsComponent = ComponentHelper::getParams( 'com_pro_critical' );
+                }#END IF
+
+
+                $client = new \Joomla\Application\Web\WebClient();
+
+                $arrInput = [
+                    'option' => 'STRING',
+                    'controller' => 'STRING',
+                    'task' => 'STRING',
+                    'view' => 'STRING',
+                ];
+
+                $parts = $this->app->input->getArray($arrInput);
+                
+                $parts['mobile'] = $client->__get('mobile') ;
+            
+
+                foreach ( $this->paramsComponent->get('additional_request_parameters_ccss' , []) as $item)
+                {
+                    $p_query = $this->app->input->get( $item->query , $list_style );
+                    $parts['additional_request_parameters'][$item->query] = $p_query ;
+
+                    
+                }#END FOREACH
+
+//                echo'<pre>';print_r( $this->paramsComponent->get('additional_request_parameters_ccss' , []) );echo'</pre>'.__FILE__.' '.__LINE__;
+//                echo'<pre>';print_r( $parts );echo'</pre>'.__FILE__.' '.__LINE__;
+//                die(__FILE__ .' '. __LINE__ );
+
+
+
+                self::$PageKey = md5(serialize($parts));
+
+
+            }#END IF
+
+            return self::$PageKey ;
+        }
+
+        public function AfterInitialise(){ }
+
 		/**
-         * К ссылке этого файла будет добавлен атрибут async
-		 * Перед созданием HEAD
+         * Перед созданием HEAD
 		 *
 		 * @throws Exception
 		 * @since version
 		 */
 		public function BeforeCompileHead()
         {
-            $doc = JFactory::getDocument();
+
+
+
+
+             if ($this->app->isClient('administrator') )  return ; #END IF
+
+
+
+            $doc = JFactory::getDocument(); ;
             $DefaultLanguage = \Plg\Pro_critical\Helper_site::getDefaultLanguage();
             $languages = \JLanguageHelper::getLanguages('lang_code');
             $doc->addScriptOptions('langSef', $languages[$DefaultLanguage]->sef);
@@ -139,8 +224,11 @@
             $doc->addScriptOptions('siteUrl', JUri::root());
             $doc->addScriptOptions('isClient', $this->app->isClient('administrator'));
             $doc->addScriptOptions('csrf.token', JSession::getFormToken());
-            //			$doc->addScriptOptions('csrf.token'  , JSession::getFormToken()  ) ;
 
+            $__v = $this->params->get('__v');
+            \GNZ11\Core\Js::addJproLoad(\Joomla\CMS\Uri\Uri::root().'plugins/system/pro_critical/assets/js/proCriticalCore.js?v=' . $__v );
+
+            $doc->addStyleSheet(\Joomla\CMS\Uri\Uri::root().'plugins/system/pro_critical/assets/css/dummy-style.css');
 
             ############################################################################################################
             # Только для администратора
@@ -161,64 +249,46 @@
         }
 		
 		/**
-		 * После рендеринга страницы
+		 * После рендеринга страницы Собираем информауию о скриптах JS и CSS
 		 *
 		 * @throws Exception
 		 * @since version
 		 */
 		public function AfterRender(){
 
-            # Если Админ Панель
-            if( $this->app->isClient( 'administrator' ) ) return true; #END IF
-            # Если нет настроек компонента
+		    # Если нет настроек компонента
             if ( !$this->paramsComponent ) return true; #END IF
 
+            # Загрузка тела страницы в DOMDocument
+            $this->HelpersAssets->InitDOM();
 
-
-            $HelpersAssets = \Plg\Pro_critical\Assets::instance( $this->paramsComponent );
+            # Выполнение Html заданий
+            $this->HelpersHtml->Run();
 
             # Извлечение всех ресурсов JS && CSS Со траницы
-            $HelpersAssets->getAllAccessList();
+            $this->HelpersAssets->getAllAccessList();
 
-            # Установить найденные ресурсы в тело страницы
-            $HelpersAssets->setAssetsToPage();
+            # Установить найденные ресурсы JS && CSS в тело страницы
+            $this->HelpersAssets->setAssetsToPage();
 
-            # Перенос скриптов в низ тела страницы
-            if( $this->paramsComponent->get('moving_scripts_to_bottom' , false) )
+            # Устанавливаем отобранные теги <template />
+            $this->HelpersHtml->setTemplateCollection();
+
+            try
             {
-                $Optimises = \GNZ11\Api\Optimize\Optimises::instance( $this->params ) ;
-                $Optimises->setParams([
-                    # Имя Оптимизатора
-                    'my_name' => 'HtmlOptimizer' ,
-                    # Переносить скрипты вниз страницы : Bool
-                    'downScript' => true ,
-                    'preload'=>[],
-                    'not_load'=>[],
-                    # обварачивать элементы в тег <template /> : Array
-                    'to_templates'=>[],
-                    'to_html_file'=>[],
-                ]);
-//                $Optimises->Start();
+                // Code that may throw an Exception or Error.
+                ### Сохранить тело страницы
+                $this->HelpersAssets->saveBody();
+                // throw new Exception('Code Exception '.__FILE__.':'.__LINE__) ;
+            }
+            catch (Exception $e)
+            {
+                // Executed only in PHP 5, will not be reached in PHP 7
+                echo 'Выброшено исключение: ',  $e->getMessage(), "\n";
+                echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__;
+                die(__FILE__ .' '. __LINE__ );
+            }
 
-            }#END IF
-
-
-//            $HelpersCss = Helpers\Assets\Css::instance();
-
-//            $HelpersCss
-
-            # Найти и извлечь все ссылки на CSS файлы и теги стили
-//			$HelpersCss->getFileList();
-
-			# Установить в HTML ссылки на Css файлы и стили
-//			$HelpersCss->insertStylesIntoDocument();
-
-
-
-            ### Сохранить тело страницы
-            $HelpersAssets->saveBody();
-
-			
 			return true ;
 		}
 		
@@ -227,43 +297,37 @@
 		 *
 		 * @since version
 		 */
-		public function onAjax(){
+        public function onAjax()
+        {
+            # Проверить Token
+            if (!JSession::checkToken('get')) exit;
+
+            $task = $this->app->input->get('task', false, 'RAW');
+            $model= $this->app->input->get('model', false, 'RAW');
+
+            if (!$model)
+            {
+                echo new JResponseJson(false, JText::_('MODEL ERROR'), true);
+                $this->app->close();
+            }#END IF
 
 
 
 
+            $model = '\Plg\Pro_critical' . $model;
+            $obj = $model::instance( $this->paramsComponent ) ;
+            $res = $obj->{$task}();
+
+            if (!$res)
+            {
+                echo new JResponseJson(false, \Joomla\CMS\Language\Text::sprintf('METHOD %s:%s ERROR', $model, $task), true);
+                $this->app->close();
+            }#END IF
+            echo new JResponseJson($res);
+            $this->app->close();
 
 
-			# Проверить Token
-			if(!JSession::checkToken('get')) exit;
-			
-			$dataModel = $this->app->input->get('model' , false , 'RAW' );
-			
-			if( !$dataModel )
-			{
-				echo new JResponseJson( false , JText::_('MODEL ERROR'), true);
-				$this->app->close();
-			}#END IF
-			
-			$inputTask = $this->app->input->get('task' , false , 'STRING' );
-			
-			$model = '\Plg\Pro_critical'.$dataModel ;
-			$obj = new $model();
-			
-			$res = $obj->{$inputTask}();
-			
-			if(  !$res )
-			{
-				echo new JResponseJson( false , JText::sprintf('METHOD %s:%s ERROR' , $model , $inputTask ), true);
-				$this->app->close();
-			}#END IF
-			echo new JResponseJson( $res );
-			$this->app->close();
-			
-			
-			
-			
-		}
+        }
 		
 		
 		
