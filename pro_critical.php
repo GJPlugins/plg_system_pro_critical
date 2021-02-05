@@ -82,7 +82,22 @@ use Joomla\CMS\Plugin\CMSPlugin;
             }
             JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
             JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
-            $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+            try
+            {
+                // Code that may throw an Exception or Error.
+                $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+                // throw new Exception('Code Exception '.__FILE__.':'.__LINE__) ;
+            }
+            catch (Exception $e)
+            {
+                $this->app->enqueueMessage($e , 'message');
+                // Executed only in PHP 5, will not be reached in PHP 7
+//                echo 'Выброшено исключение: ',  $e->getMessage(), "\n";
+//                echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__;
+//                die(__FILE__ .' '. __LINE__ );
+            }
+
+
 
             $this->HelperCache = HelperCache::instance( $this->params );
             $this->HelperCache = $this->Helper->HelperCache ;
@@ -212,7 +227,7 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		{
 			if( $this->SLEEP ) return false ; #END IF
 
-            $this->HelperCache->_onAfterRespond();
+            $this->Helper->HelperCache->_onAfterRespond();
 			return true;
 		}
 

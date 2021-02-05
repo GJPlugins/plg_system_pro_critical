@@ -7,7 +7,7 @@
 	<authorUrl>https://nobd.ml</authorUrl>
 	<copyright>Copyright (C) 2019. All Rights Reserved</copyright>
 	<license>GNU/GPL Version 2 or later - http://www.gnu.org/licenses/gpl-2.0.html</license>
-	<version>1.0.8</version>
+	<version>1.0.9</version>
 	<description>PLG_SYSTEM_PRO_CRITICAL_XML_DESCRIPTION</description>
 	<version_gnz11>0.4.5</version_gnz11>
 	<scriptfile>script.php</scriptfile>
