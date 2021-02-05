@@ -101,7 +101,7 @@
 		}#END FN
 
         /**
-         * Установить отобранные CSS в экземляр DOM
+         * Установить отобранные CSS в экземпляр DOM
          * @since 3.9
          * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
          * @date 26.08.2020 08:29
@@ -109,27 +109,33 @@
          */
         public function setCss(){
 
+            # Если коллекция css ссылок пустая
             if (!isset( self::$AssetssCollection['link'] )) return ; #END IF
 
             # Проверить Если не созданы CCSS
             $checkCCSS = \Plg\Pro_critical\Helpers\Assets\Css_critical::checkCriticalCssData() ;
-            # Если созданы CCSS - Добаавляем их первыми
+
+            # Если созданы CCSS - Добавляем <style>CCSS</style> перед тегом </head>
             if ( $checkCCSS )
             {
                 $DataCCSS = \Plg\Pro_critical\Helpers\Assets\Css_critical::$CriticalCssData ;
                 $DataCCSS->critical_css_code .= $DataCCSS->add_css_code ;
-
 
                 $attr = null ;
                 self::$dom::_setBottomHeadTag ( self::$dom , 'style' , $DataCCSS->critical_css_code , $attr );
             }#END IF
 
 
+
+
             $loadLaterCss = [];
+            # Справочник view=css_file
             foreach ( self::$AssetssCollection['link'] as $item)
             {
+                # Если в настройках ресурса установлено не загружать
                 if ( !$item->load ) continue ; #END IF
-                # Если созданны CCSS и не Загружать с Critical Css
+
+                # Если созданы CCSS и не Загружать с Critical Css
                 if ( $checkCCSS && !$item->load_if_criticalis_set  ) continue; #END IF
 
                 $attr = $this->getAttr( $item ) ;
@@ -138,14 +144,14 @@
                 $file = $this->getFile( $item );
 
                 # для создания ссылки к файлу убираем домен
-                $file = str_replace( \Joomla\CMS\Uri\Uri::root() , '' , $file)  ;
-                $file = str_replace( \Joomla\CMS\Uri\Uri::root(true) , '' , $file )  ;
+                $file = str_replace( Uri::root() , '' , $file)  ;
+                $file = str_replace( Uri::root(true) , '' , $file )  ;
                 # Если путь начатается с '/'
                 if (strpos( $file , '/') === 0) {
                     $file = ltrim( $file, '/' ) ;
                 }
 
-                $attr['href'] = \Joomla\CMS\Uri\Uri::root() . $file ;
+                $attr['href'] = Uri::root().$file ;
 
 
                 # Если CCSS не созданы - добавляем  как есть
@@ -160,12 +166,13 @@
                 $loadLaterCss[] = $attr ;
             }#END FOREACH
 
+            # Справочник view=css_style
             $loadLaterCssStyle = [] ;
             foreach (self::$AssetssCollection['style'] as $item)
             {
                 $attr = $this->getAttr( $item ) ;
 
-                # Если TYPE рессурса не из исключенных добавляем его к атрибутам
+                # Если TYPE ресурса не из исключенных добавляем его к атрибутам
                 !in_array( $item->type,$this->excludedTypes )?$attr['type']=$item->type:null;
 
                 if (!is_array( $item ))
@@ -173,9 +180,10 @@
                     $Registry = new Registry($item);
                     $item = $Registry->toArray();
                 }#END IF
-
+                // Если нет содержимого тега <style />
                 if ( empty( trim( $item['content'] ) )) continue ; #END IF
 
+                // Если CCSS не созданы
                 if ( !$checkCCSS )
                 {
                     self::$dom::_setBottomHeadTag ( self::$dom , 'style' , $item['content'] , $attr );
@@ -187,7 +195,7 @@
             }#END FOREACH
 
             
-            # Если в настройках копонентеа установлено создавать прелоадер
+            # Если в настройках компонента установлено создавать прелоадер
             if ( self::$params->get('ccss_add_preloader_ccs_link' , true ) )
             {
                 $RevLoadLaterCss = array_reverse( $loadLaterCss );
@@ -197,15 +205,34 @@
                     $attr['rel'] = 'preload' ;
                     $attr['as'] = 'style' ;
 //                    self::$dom::_setTopHeadTag( self::$dom , 'link',  '',  $attr   );
-//                    self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
-
+                    self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
                 }#END FOREACH
 
-//                unset( $attr['as'] ) ;
             }#END IF
 
+
+
+
+
+            if( count( $loadLaterCss  ) )
+            {
+                # Загрузить файл для запуска триггера __loadLaterCss
+                \GNZ11\Core\Js::addJproLoad( Uri::root().'plugins/system/pro_critical/assets/js/__loadLaterCss.js' , false , false);
+                foreach ( $loadLaterCss as $linkCss)
+                {
+                    # Добавить файл в загрузку JPro
+                    \GNZ11\Core\Js::addJproLoad( $linkCss['href'] , /*'Callback'*/ false , $Trigger = '__loadLaterCss' );
+                }#END FOREACH
+            }#END IF
+
+            # TODO - Дозагрузка файлов стилей при созданных CCSS - перенесено в JPro
 //            self::$addJsTask['loadLaterCss']['link'] = $loadLaterCss ;
+
+            # Данные для дозагрузки стилей css
+            # обрабатывается /plg_system_pro_critical/assets/js/proCriticalCore.js :: loadLaterCss()
             self::$addJsTask['loadLaterCss']['stile'] = $loadLaterCssStyle ;
+
+
         }
 
 		

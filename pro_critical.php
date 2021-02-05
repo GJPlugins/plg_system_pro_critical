@@ -25,8 +25,9 @@
 	use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Factory as JFactory;
 use Joomla\CMS\Plugin\CMSPlugin;
-	
-	/**
+    use Plg\Pro_critical\HelperCache;
+
+    /**
 	 * System - Pro_critical plugin.
 	 *
 	 * @since     1.0.4
@@ -53,8 +54,13 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		private $SLEEP = false ;
 
 		protected $patchGnz11 = JPATH_LIBRARIES . '/GNZ11' ;
+        /**
+         * @var HelperCache
+         * @since 3.9
+         */
+        private $HelperCache;
 
-		/**
+        /**
 		 * Constructor.
 		 *
 		 * @param   object  &$subject  The object to observe.
@@ -65,8 +71,21 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		 */
 		public function __construct ( &$subject , $config )
 		{
+//		    die(__FILE__ .' '. __LINE__ );
+
 			parent::__construct( $subject , $config );
-			$this->app = JFactory::getApplication();
+
+			// Get the application if not done by JPlugin.
+            if (!isset($this->app))
+            {
+                $this->app = JFactory::getApplication();
+            }
+            JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
+            JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
+            $this->Helper = \Plg\Pro_critical\Helper::instance( $this->params );
+
+            $this->HelperCache = HelperCache::instance( $this->params );
+            $this->HelperCache = $this->Helper->HelperCache ;
 
         }
 		
@@ -79,14 +98,20 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		 */
 		public function onAfterInitialise ()
 		{
-            JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
-            JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
+
 
             if ( \Joomla\CMS\Factory::getDocument()->getType() !== 'html' )
             {
                 $this->SLEEP = true;
                 return;
             }#END IF
+
+            /**
+             * Инит Кеш
+             */
+            $this->Helper->HelperCache->_onAfterInitialise();
+
+
         }
 		
 		/**
@@ -160,25 +185,20 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		public function onAfterRender ()
 		{
 
+
             if( $this->SLEEP ) return false ; #END IF
+
 			# Если Админ Панель
 			if( $this->app->isClient( 'administrator' ) ) return true; #END IF
+
             $this->Helper->AfterRender();
+
+
+
             return true;
 		}
 		
-		/**
-		 * Trigger the onAfterCompress event.
-		 * Если в конфигурации включено сжатие gzip и сервер совместим.
-		 * @return bool
-		 * @since   3.2
-		 */
-		public function onAfterCompress ()
-		{
-			if( $this->SLEEP ) return false ; #END IF
-			
-			return true;
-		}
+
 		
 		/**
 		 * Trigger the onAfterRespond event.
@@ -192,9 +212,25 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		{
 			if( $this->SLEEP ) return false ; #END IF
 
+            $this->HelperCache->_onAfterRespond();
 			return true;
 		}
-		
+
+        /**
+         * Trigger the onAfterCompress event.
+         * Если в конфигурации включено сжатие gzip и сервер совместим.
+         * @return bool
+         * @since   3.2
+         */
+        public function onAfterCompress ()
+        {
+            if( $this->SLEEP ) return false ; #END IF
+
+            return true;
+        }
+
+
+
 		/**
 		 * Точка входа Ajax
 		 *

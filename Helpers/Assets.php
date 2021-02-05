@@ -183,7 +183,7 @@ class Assets
         }#END IF
         if (self::$params->get('CSS_On' , false ) )
         {
-            $xpathQuery[] = '//link[@rel="stylesheet" and not(@data-not-interact)]|//style'  ;
+            $xpathQuery[] = '//link[@rel="stylesheet" and not(@data-not-interact)]|//style[not(@data-not-interact)]'  ;
         }#END IF
 
 //        self::$dom = new \GNZ11\Document\Dom();
@@ -407,9 +407,28 @@ class Assets
         $this->getNewAssets( 'scriptDeclaration' , (array)$scriptDeclarationDbList);
     }
 
+    /**
+     * Установить ссылки на JS Файлы   установка Css Стилей !
+     * @throws Exception
+     * @since  3.9
+     * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+     * @date   29.01.2021 18:41
+     *
+     */
     public function setAssetsToPage(){
-        \Plg\Pro_critical\Helpers\Assets\Js::instance()->setScript() ;
+        \Plg\Pro_critical\Helpers\Assets\Js::instance()->setScriptLink() ;
         \Plg\Pro_critical\Helpers\Assets\Css::instance()->setCss() ;
+    }
+
+    /**
+     * Установка Последних JS скриптов перед возвращением BODY в документ
+     * @since  3.9
+     * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+     * @date   29.01.2021 18:44
+     *
+     */
+    public function setOverAssetsToPage(){
+        \Plg\Pro_critical\Helpers\Assets\Js::instance()->setScriptTags() ;
     }
 
     /**
@@ -577,9 +596,9 @@ class Assets
                 {
                     # Найти подстроку из массива в заданной строке
                     $r = \GNZ11\Document\Arrays::strpos_array( $testStr , $mapArr) ;
-                    # Если подстрака исключения найдена пропускаем добавление в справочник
+                    # Если подстарка исключения найдена пропускаем добавление в справочник
                     if(  $r ) {
-                        #Переводим в обьект новые найденные ресурсы
+                        #Переводим в объект новые найденные ресурсы
                         \GNZ11\Document\Arrays::arrToObj( $data ) ;
                         continue ;
                     } #END IF
@@ -604,6 +623,11 @@ class Assets
 
         # Если ни чего не найдено для записи
         if( !$addDB ) return ; #END IF
+
+        # если JS Script и в настройках не сохранять в DB
+        if( $view == 'scriptDeclaration' && !self::$params->get('save_books_js_script' , 1 )  ) return;  #END IF
+
+
 
 
 

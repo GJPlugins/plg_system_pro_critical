@@ -59,6 +59,7 @@ class Css_critical
      */
     public static $instance;
     /**
+     * Хранение CCSS - До их установки
      * @var bool
      * @since 3.9
      */
@@ -79,6 +80,7 @@ class Css_critical
     {
         # Устанавливаем параметраметры копонента
         self::$params = $params ;
+
         $this->app = Factory::getApplication();
         $this->db = Factory::getDbo();
 
@@ -87,13 +89,8 @@ class Css_critical
         # Если создание CCSS отключено
         if ( !self::$params->get('css_critical_on')) return $this;  #END IF
 
-
-
         # Найти CCSS в DB
         self::$CriticalCssData = $this->getCriticalCss();
-
-
-
 
         # Если CCSS не созданы создать задачу для FRONT
         if ( !self::$CriticalCssData )
@@ -185,24 +182,27 @@ class Css_critical
      * @date 07.10.2020 21:20
      *
      */
-    public static function checkCriticalCssData(){
-        if ( !self::$CriticalCssData )
+    public static function checkCriticalCssData()
+    {
+        if( !self::$CriticalCssData )
         {
             # Создать файл AllCss
             self::$instance->getAllCss();
-            return false ;
+            return false;
         }#END IF
-        return true ;
+        return true;
     }
 
     /**
-     * Создать файл AllCss Вытащить все стили из найденных рессурсов
+     * Создать файл AllCss Вытащить все стили из найденных ресурсов
      * @since 3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
      * @date 07.10.2020 21:25
      *
      */
     protected function getAllCss(){
+        # Если создание CCSS отключено
+        if ( !self::$params->get('css_critical_on')) return ;  #END IF
 
         # Получить ключ текущей страницы
         $key = \Plg\Pro_critical\Helper::$PageKey;
@@ -212,6 +212,7 @@ class Css_critical
         # Если файл AllCss - существует
         if ( \GNZ11\Core\Filesystem\File::exists( $fileName ) ) return ; #END IF
 
+
         $Registry = new Registry( \Plg\Pro_critical\Helpers\Assets\Css::$AssetssCollection['link'] ) ;
         $CollectionLink = $Registry->toObject() ;
 
@@ -219,6 +220,8 @@ class Css_critical
 
         $minifier = new \MatthiasMullie\Minify\CSS(  );
         $minifier->setMaxImportSize(100);
+
+        /**--------------------------------------------------------*/
 
         foreach ($CollectionLink as $fileData ){
 
@@ -279,8 +282,11 @@ class Css_critical
      * @date 07.10.2020 17:38
      *
      */
-    protected function getCriticalCss(){
-        # Получить ключ текущей страницы
+    public function getCriticalCss(){
+
+        if( self::$CriticalCssData ) return self::$CriticalCssData ; #END IF
+
+        # Получить ключ текущей страницы для CCSS
         $key = \Plg\Pro_critical\Helper::$PageKey ;
         $Query = $this->db->getQuery(true);
         $Query->select( [$this->db->quoteName('critical_css_code') , $this->db->quoteName('add_css_code')] )
@@ -292,11 +298,9 @@ class Css_critical
         $Query->where( $where );
         $this->db->setQuery($Query);
 
+        self::$CriticalCssData = $this->db->loadObject();
 
-
-
-
-        return $this->db->loadObject();
+        return self::$CriticalCssData;
     }
 
     /**
@@ -307,6 +311,8 @@ class Css_critical
      *
      */
     public function CreateCCSS(){
+
+
         $AllCssKey = $this->app->input->get('AllCssKey' , false, 'STRING');
         $url = $this->app->input->get('url' , false, 'STRING');
         # Ссылка на файла AllCss
@@ -318,6 +324,8 @@ class Css_critical
         $mobile = $client->__get('mobile') ;
         $screen_sizes = self::$params->get('screen_sizes') ;
         $dataSizes = $screen_sizes->{'screen_sizes' . (!$mobile?0:1) };
+
+
 
         $Arrdata = [
             // Задача
@@ -332,7 +340,35 @@ class Css_critical
             'width' => $dataSizes->width ,
             // Высота экрана
             'height' => $dataSizes->height ,
+
+            // Сохраняйте медиа-запросы
+            // даже для значений ширины / высоты, превышающих критическое окно просмотра.
+            'keepLargerMediaQueries' => self::$params->get('ccss_keep_larger_media_queries' , false ) ,
+
+            // Массив селекторов css для сохранения в критическом css,
+            // даже если он не отображается в критическом окне просмотра.
+            // Строки или регулярное выражение (f.e. ['.keepMeEvenIfNotSeenInDom', /^\.button/])
+            'forceInclude' => self::$params->get('ccss_force_include' , [] ) ,
+
+            // Массив селекторов CSS, которые нужно удалить в критическом CSS, даже если они появляются
+            // в критическом окне просмотра.
+            // Строки или регулярное выражение (f.e. ['.doNotKeepMeEvenIfNotSeenInDom', /^\.button/])
+            'forceExclude' => self::$params->get('ccss_force_exclude' , [] ) ,
+
+            // прервать создание критического CSS по истечении этого времени
+            'timeout' => self::$params->get('ccss_timeout' , 30000 ) ,
+
+            // время ожидания после загрузки страницы до начала критического извлечения css
+            // (также до создания снимка экрана , если он используется)
+            'renderWaitTime' => self::$params->get('ccss_render_wait_time' , 100 ) ,
+
+            // установите значение false для загрузки JS (не рекомендуется)
+            'blockJSRequests' => self::$params->get('ccss_block_js_requests' , true ) ,
+
+
+
         ];
+
 
         $res = $this->generateCCSS( $Arrdata );
 
@@ -341,6 +377,7 @@ class Css_critical
             echo new \JResponseJson( null , 'Данные не получены' , true );
             die();
         }#END IF
+
 
 
 
@@ -418,6 +455,10 @@ class Css_critical
     public function generateCCSS($ArrData){
         $URL = self::$params->get('css_critical_url_api');
         $key = self::$params->get('css_critical_key_api');
+
+
+
+
         $Curl = curl_init();
         curl_setopt_array( $Curl, [
             CURLOPT_URL            => $URL ,

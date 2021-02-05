@@ -1,7 +1,8 @@
 <?php
 	
 	namespace Plg\Pro_critical;
-	use Joomla\Registry\Registry;
+	use Joomla\CMS\Factory;
+    use Joomla\Registry\Registry;
 	use JFactory;
 	use JLoader;
 	
@@ -33,6 +34,14 @@
 	    protected $HelpersAssets ;
 
 		public static $instance;
+
+        /**
+         * Параметры компонента COM_PRO_CRITICAL
+         * @var Registry
+         * @since 3.9
+         */
+        protected $paramsComponent;
+
         /**
          * @var string - Ключ страницы
          * @since 3.9
@@ -43,7 +52,7 @@
 		private $app;
 		
 		private $params;
-		private $paramsComponent;
+
 		private $GNZ11_js;
         /**
          * Имя компонента для вызова модели
@@ -57,6 +66,12 @@
          * @since 3.9
          */
         protected $HelpersHtml;
+        private $db;
+        /**
+         * @var HelperCache
+         * @since 3.9
+         */
+        public $HelperCache;
 
         /**
 		 * helper constructor.
@@ -70,8 +85,8 @@
 		{
             $this->app = JFactory::getApplication();
 			$this->params = $params ;
+            $this->db = Factory::getDbo();
 
-            $this->getPageKey();
 
             # Если работать по настройкам компонента
 			if( !$this->params->get('is_none_component' , false ) )
@@ -94,6 +109,11 @@
             }#END IF
 
             JLoader::registerNamespace('Plg\Pro_critical\Helpers\Assets', JPATH_PLUGINS.'/system/pro_critical/Helpers/Assets',$reset=false,$prepend=false,$type='psr4');
+            $this->HelperCache = HelperCache::instance( $this->paramsComponent );
+            $this->getPageKey();
+
+            
+            
             $this->HelpersAssets = \Plg\Pro_critical\Assets::instance( $this->paramsComponent );
             $this->HelpersHtml = \Plg\Pro_critical\Html::instance( $this->paramsComponent );
 
@@ -119,7 +139,7 @@
 		}#END FN
 
         /**
-         * Создать ключ текущей страницы
+         * Создать ключ CCSS текущей страницы
          * @since 3.9
          * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
          * @date 08.10.2020 05:37
@@ -128,9 +148,12 @@
         public function getPageKey()
         {
             
-            $session =  \Joomla\CMS\Factory::getSession() ;
 
-            $list_style = $session->get( 'list_style' , 'tmp_table' );
+            # TODO Реренести в плаги группы   pagecache
+            # $session =  Factory::getSession() ;
+            # $list_style = $session->get( 'list_style' , 'tmp_table' );
+
+            self::$PageKey = $this->HelperCache->getCacheKey();
 
             if ( !self::$PageKey )
             {
@@ -157,10 +180,8 @@
 
                 foreach ( $this->paramsComponent->get('additional_request_parameters_ccss' , []) as $item)
                 {
-                    $p_query = $this->app->input->get( $item->query , $list_style );
+                    $p_query = $this->app->input->get( $item->query , $item );
                     $parts['additional_request_parameters'][$item->query] = $p_query ;
-
-                    
                 }#END FOREACH
 
 //                echo'<pre>';print_r( $this->paramsComponent->get('additional_request_parameters_ccss' , []) );echo'</pre>'.__FILE__.' '.__LINE__;
@@ -174,6 +195,10 @@
 
             }#END IF
 
+            
+
+
+            
             return self::$PageKey ;
         }
 
@@ -195,7 +220,7 @@
 
 
 
-            $doc = JFactory::getDocument(); ;
+            $doc = JFactory::getDocument();
             $DefaultLanguage = \Plg\Pro_critical\Helper_site::getDefaultLanguage();
             $languages = \JLanguageHelper::getLanguages('lang_code');
             $doc->addScriptOptions('langSef', $languages[$DefaultLanguage]->sef);
@@ -228,7 +253,9 @@
             $__v = $this->params->get('__v');
             \GNZ11\Core\Js::addJproLoad(\Joomla\CMS\Uri\Uri::root().'plugins/system/pro_critical/assets/js/proCriticalCore.js?v=' . $__v );
 
-            $doc->addStyleSheet(\Joomla\CMS\Uri\Uri::root().'plugins/system/pro_critical/assets/css/dummy-style.css');
+            $this->loadDummyStyle();
+
+
 
             ############################################################################################################
             # Только для администратора
@@ -247,6 +274,36 @@
             }#END IF*/
 
         }
+
+        /**
+         * Загрузить стили для манекенов если установлены задания - Заменять элементы манекенами
+         * @since  3.9
+         * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+         * @date   28.01.2021 01:41
+         *
+         */
+        public function loadDummyStyle(){
+            $__v = $this->params->get('__v');
+            $doc = Factory::getDocument();
+            $Query = $this->db->getQuery(true);
+            $Query->select('*')->from( $this->db->quoteName('#__pro_critical_html_task' , 't' ) );
+            $where = [
+                $this->db->quoteName( 't.html_processing') . '='. $this->db->quote( 'element_temlating_and_replace' ) ,
+                $this->db->quoteName( 't.published') . '='. $this->db->quote( 1 ) ,
+            ];
+            $Query->where($where);
+            $this->db->setQuery( $Query ) ;
+            $tasks = $this->db->loadObjectList();
+            if( count( $tasks ) )
+            {
+                $doc->addStyleSheet(\Joomla\CMS\Uri\Uri::root().'plugins/system/pro_critical/assets/css/dummy-style.css?v=' . $__v);
+            }#END IF
+
+
+
+        }
+
+
 		
 		/**
 		 * После рендеринга страницы Собираем информауию о скриптах JS и CSS
@@ -265,7 +322,7 @@
             # Выполнение Html заданий
             $this->HelpersHtml->Run();
 
-            # Извлечение всех ресурсов JS && CSS Со траницы
+            # Извлечение всех ресурсов JS && CSS Со страницы
             $this->HelpersAssets->getAllAccessList();
 
             # Установить найденные ресурсы JS && CSS в тело страницы
@@ -273,6 +330,9 @@
 
             # Устанавливаем отобранные теги <template />
             $this->HelpersHtml->setTemplateCollection();
+
+            # Установить найденные ресурсы JS && CSS в тело страницы
+            $this->HelpersAssets->setOverAssetsToPage();
 
             try
             {
@@ -289,6 +349,9 @@
                 die(__FILE__ .' '. __LINE__ );
             }
 
+            # Создаем кеш если нужно
+            $this->HelperCache->_onAfterRender();
+
 			return true ;
 		}
 		
@@ -299,8 +362,14 @@
 		 */
         public function onAjax()
         {
+
+
             # Проверить Token
-            if (!JSession::checkToken('get')) exit;
+            # TODO - доделать ддля работы с влюченным кешем
+//            if (!JSession::checkToken('get')) exit('Err - check Token');
+
+
+
 
             $task = $this->app->input->get('task', false, 'RAW');
             $model= $this->app->input->get('model', false, 'RAW');

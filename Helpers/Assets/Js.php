@@ -20,6 +20,7 @@ defined('_JEXEC') or die; // No direct access to this file
 use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Factory;
 use Exception;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
 
 /**
@@ -87,7 +88,7 @@ class Js extends \Plg\Pro_critical\Assets
      * @date 25.08.2020 23:10
      *
      */
-    public function setScript(){
+    public function setScriptLink(){
 
         if ( !isset(self::$AssetssCollection['script'] ) )  return ; #END IF
         if ( !self::$params->get('moving_scripts_to_bottom' , false ) ) return ; #END IF
@@ -98,31 +99,24 @@ class Js extends \Plg\Pro_critical\Assets
          */
         $this->excludedTypes = ['text/javascript',];
 
-
-
-
-
+        # Перебираем коллекцию ссылок на JS файлы
         foreach (self::$AssetssCollection['script'] as &$script )
         {
+
+            if( $script->delayed_loading )
+            {
+               \GNZ11\Core\Js::addJproLoad(Uri::root().$script->file  ,   false ,   false );
+               continue ;
+            }#END IF
+            
+            
             $attr = $this->getAttr( $script ) ;
             $attr['src'] = $this->getFile( $script );
             $attr['async']= $script->async ;
             $attr['defer']= $script->defer ;
 
-
-
-
-            if( $script->file  == 'templates/elektro/assets/js/com_jshopping/functions.js' )
-            {
-//                echo'<pre>';print_r( $attr );echo'</pre>'.__FILE__.' '.__LINE__;
-//                echo'<pre>';print_r( $script );echo'</pre>'.__FILE__.' '.__LINE__;
-//                echo'<pre>';print_r( $script->file );echo'</pre>'.__FILE__.' '.__LINE__;
-            }#END IF
-
-
             try
             {
-                // Code that may throw an Exception or Error.
                 self::$dom::writeDownTag ( self::$dom , 'script' , null , $attr );
                 // throw new Exception('Code Exception '.__FILE__.':'.__LINE__) ;
             }
@@ -138,23 +132,10 @@ class Js extends \Plg\Pro_critical\Assets
 
         }#END FOREACH
 
-//        die(__FILE__ .' '. __LINE__ );
 
 
-        # TODO Добавить Выбор типа контента для скрипта - ( Original | Minified | Overridden )
-        foreach (self::$AssetssCollection['scriptDeclaration'] as &$scriptDeclaration )
-        {
-            $attr = $this->getAttr( $scriptDeclaration ) ;
-            # Если TYPE рессурса не из исключенных добавляем его к атрибутам
-            !in_array( $scriptDeclaration->type,$this->excludedTypes )?$attr['type']=$scriptDeclaration->type:null;
 
-            if (!is_array( $scriptDeclaration ))
-            {
-                $Registry = new Registry($scriptDeclaration);
-                $scriptDeclaration = $Registry->toArray();
-            }#END IF
-            self::$dom::writeDownTag ( self::$dom , 'script' , $scriptDeclaration['content'] , $attr );
-        }
+
 
 
 
@@ -162,7 +143,52 @@ class Js extends \Plg\Pro_critical\Assets
 
     }
 
+    /**
+     * Установка - тегов <script /> и Joomla Options
+     * @since  3.9
+     * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+     * @date   29.01.2021 18:52
+     *
+     */
+    public function setScriptTags(){
+        # перебираем JAVAScript теги
+        # TODO Добавить Выбор типа контента для скрипта - ( Original | Minified | Overridden )
+        foreach (self::$AssetssCollection['scriptDeclaration'] as &$scriptDeclaration )
+        {
 
+            $attr = $this->getAttr( $scriptDeclaration ) ;
+
+            # Если TYPE рессурса не из исключенных добавляем его к атрибутам
+            !in_array( $scriptDeclaration->type , $this->excludedTypes ) ? $attr['type'] = $scriptDeclaration->type : null;
+
+            if (!is_array( $scriptDeclaration ))
+            {
+                $Registry = new Registry($scriptDeclaration);
+                $scriptDeclaration = $Registry->toArray();
+            }#END IF
+
+            /**
+             * Ловим Joomla Options
+             */
+            if( $scriptDeclaration['type'] == 'application/json' && ( isset($attr['class']) && $attr['class']=='joomla-script-options new' ) )
+            {
+                $doc = Factory::getDocument();
+                $JoomlaOptions = $doc->getScriptOptions();
+
+                self::$AssetssCollection['scriptDeclaration'] ;
+                $scriptDeclaration['content'] = json_encode( $JoomlaOptions ) ;
+                /* echo'<pre>';print_r( $JoomlaOpions );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+
+
+                 echo'<pre>';print_r( self::$AssetssCollection['scriptDeclaration'] );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+
+                 die(__FILE__ .' '. __LINE__ );*/
+            }#END IF
+
+
+            self::$dom::writeDownTag ( self::$dom , 'script' , $scriptDeclaration['content'] , $attr );
+        }
+    }
 
 
 

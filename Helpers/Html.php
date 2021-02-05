@@ -26,6 +26,7 @@ use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\Registry\Registry;
+use stdClass;
 
 /**
  * Class Html
@@ -118,16 +119,19 @@ class Html
         $tasks = $this->getTaskHtml();
         # Массив с Id выполненых задач
         $useIdTask = [] ;
+        
+//        echo'<pre>';print_r( $tasks );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+
 
         foreach ( $tasks as $task )
         {
             if (isset( $task->task_data )) {
                 $task->task_data = json_decode( $task->task_data );
             }#END IF
-
             
+          
             $_t = 'task'.ucfirst ( $task->html_processing );
-            
+
             try
             {
 
@@ -145,9 +149,28 @@ class Html
 
         }#END FOREACH
 
+//        die(__FILE__ .' '. __LINE__ );
 
     }
 
+    /**
+     * Удаление элементов страницы
+     *
+     * @param stdClass $paramsTask - параметры задачи
+     *
+     * @since  3.9
+     * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
+     * @date   29.01.2021 05:04
+     */
+    protected function taskElement_removeElement(stdClass $paramsTask){
+        # Находим узлы по селеутору
+        $Nodes = self::getNodes( $paramsTask->selector );
+        foreach ($Nodes as $node)
+        {
+            $node->parentNode->removeChild($node);
+        }
+
+    }
 
 
     /**
@@ -156,16 +179,37 @@ class Html
      * Это позволяет снизить нагрузку при Script Evaluation
      *
      * @param $paramsTask
-     * @since 3.9
+     *
+     * @throws Exception
+     * @since  3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
-     * @date 10.10.2020 23:13
-     * https://habr.com/ru/post/231845/ - Import Html
-     * https://x-tag.readme.io/docs/getting-started
+     * @date   10.10.2020 23:13
+     *         https://habr.com/ru/post/231845/ - Import Html
+     *         https://x-tag.readme.io/docs/getting-started
      */
     protected function taskElement_temlating($paramsTask){
 
-        # Находим узлы по селеутору
+        if( $paramsTask->task_data->event_show == 'removeElement' )
+        {
+            $this->taskElement_removeElement($paramsTask);
+            return ;
+        }#END IF
+
+
+        if( $paramsTask->id == 5 )
+        {
+//            echo'<pre>';print_r( $paramsTask->selector );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            echo'<pre>';print_r( $Nodes );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            echo'<pre>';print_r( $paramsTask );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            die(__FILE__ .' '. __LINE__ );
+        }#END IF
+
+
+        # Находим узлы по селектору
         $Nodes = self::getNodes( $paramsTask->selector );
+
+
+
 
         # Создать тег <template />
         $_template = self::$dom->createElement('template');
@@ -177,6 +221,8 @@ class Html
         $this->addLinkPreloader(  $paramsTask ) ;
 
         $task_id = '__template-' . $paramsTask->task_id ;
+
+
 
 
         foreach ($Nodes as $node)
@@ -299,7 +345,7 @@ class Html
 
     /**
      * Найти узлы Dom по селектору
-     * @param $selector - jQuery селектор для поиска узла
+     * @param $selector - jQuery || XPath селектор для поиска узла
      * @return DOMNodeList|false
      * @since 3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
@@ -307,11 +353,15 @@ class Html
      *
      */
     public static function getNodes( $selector ){
-        /**
-         * Конвертируем jQuery Селектор в  XPath
-         */
-        $Translator = new \GNZ11\Document\Dom\Translator( $selector );
-        $xpathQuery = $Translator->asXPath();
+        if (strpos( $selector , '/') !== false) {
+            $xpathQuery = $selector ;
+        }else{
+            /**
+             * Конвертируем jQuery Селектор в  XPath
+             */
+            $Translator = new \GNZ11\Document\Dom\Translator( $selector );
+            $xpathQuery = $Translator->asXPath();
+        }
 
         $xpath = new \DOMXPath(self::$dom);
         # Найденые узлы
@@ -337,7 +387,7 @@ class Html
     }
 
     /**
-     * Определение селектора- тирггера  для отображения елемента  ( selector_show )
+     * Определение селектора- триггера  для отображения элемента  ( selector_show )
      * @param $paramsTask
      * @return null
      * @since 3.9
@@ -358,6 +408,7 @@ class Html
                 $element_for_event = null ;
                 break ;
             default:
+                throw new Exception('Code Exception '.__FILE__.':'.__LINE__) ;
                 echo'<pre>';print_r( $paramsTask );echo'</pre>'.__FILE__.' '.__LINE__;
                 die(__FILE__ .' '. __LINE__ );
         }
@@ -487,6 +538,9 @@ class Html
         }#END FOREACH
     }
 
+
+
+
     /**
      * Плучить список заданий
      * @return array|mixed
@@ -497,11 +551,18 @@ class Html
      */
     protected function getTaskHtml(){
         $__view = 'view' ;
+
         $option = $this->app->input->get( 'option' , false , 'STRING' );
 
         if ($option == 'com_jshopping')  $__view = 'controller' ;#END IF
         $view = $this->app->input->get( $__view , false , 'STRING' );
 
+
+        $WebClient = new \Joomla\Application\Web\WebClient();
+        $mobile = $WebClient->__get('mobile');
+
+//        echo'<pre>';print_r( $mobile );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//        die(__FILE__ .' '. __LINE__ );
 
 
         $Query = $this->db->getQuery(true);
@@ -517,12 +578,28 @@ class Html
 
             $this->db->quoteName( 't.published') . '='. $this->db->quote( 1 ) ,
         ];
-        $Query->where($where);
+
+
+        if( $mobile )
+        {
+            $where[] = $this->db->quoteName( 't.type_device_id') . 'IN (0,1)' ;
+        }else{
+            $where[] = $this->db->quoteName( 't.type_device_id') . 'IN (0,2)' ;
+        }#END IF
         
+        $Query->where($where);
 
 
+//        echo $Query->dump() ;
         $this->db->setQuery( $Query ) ;
         $tasks = $this->db->loadObjectList();
+
+
+
+
+
+
+        
         # Перебираем задачи
         foreach ( $tasks as $i => &$task )
         {
@@ -531,7 +608,7 @@ class Html
             foreach ( $task->query_params as $query_param )
             {
                 # проверяем по параметрам запроса на соответствии задачи
-                # Еслои нет соответствия - убиваем задачу
+                # Если нет соответствия - убиваем задачу
                 $query = $this->app->input->get( $query_param->query ) ;
                 if ( $query != $query_param->value )
                 {

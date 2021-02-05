@@ -138,9 +138,10 @@ window.proCriticalCore = function () {
             //   Загрузка дополнительных ресурсов
             var Assets = self.Tasks.html.loadAssets[template_id];
             var arrLoad = [] ;
-
+            var Ext ;
             $.each(Assets , function (i , Asset ){
-                arrLoad.push( self.load.css(  Asset ) );
+                Ext = self.FILE_SYSTEM.getExtensionInPath(Asset) ;
+                arrLoad.push( self.load[Ext](  Asset ) );
             });
             // console.log( arrLoad )
             Promise.all(arrLoad).then(function (a){
@@ -235,6 +236,7 @@ window.proCriticalCore = function () {
             document.head.insertBefore( link, document.head.childNodes[ document.head.childNodes.length - 1 ].nextSibling );
 
         });
+
         $.each(this.Tasks.Css.loadLaterCss.stile , function (i,a){
             var css = a.content ,
                 head = document.head || document.getElementsByTagName('head')[0],
