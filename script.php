@@ -127,7 +127,7 @@ class PlgSystemPro_criticalInstallerScript
     function preflight($typeExt, $parent)
     {
 
-        // manifest file version
+       /* // manifest file version
         $this->release = (string)$parent->get('manifest')->version;
 
         # Проверить версию Gnz11
@@ -146,7 +146,7 @@ class PlgSystemPro_criticalInstallerScript
 
         JLoader::registerNamespace('GNZ11', JPATH_LIBRARIES . '/GNZ11', $reset = false, $prepend = false, $type = 'psr4');
         $parent->manifest->name = 'PlgSystemPro_critical';
-       \GNZ11\Extensions\ScriptFile::updateProcedure($typeExt, $parent);
+       \GNZ11\Extensions\ScriptFile::updateProcedure($typeExt, $parent);*/
         return true;
     }
 

@@ -80,6 +80,12 @@ use Joomla\CMS\Plugin\CMSPlugin;
             {
                 $this->app = JFactory::getApplication();
             }
+
+//            echo'<pre>';print_r( $this->patchGnz11 );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            die(__FILE__ .' '. __LINE__ );
+
+
+            # TODO - Добавить исключение - на случай если не установлена библиотека GNZ11 (try )
             JLoader::registerNamespace( 'GNZ11' , $this->patchGnz11 , $reset = false , $prepend = false , $type = 'psr4' );
             JLoader::registerNamespace( 'Plg\Pro_critical' , JPATH_PLUGINS . '/system/pro_critical/Helpers' , $reset = false , $prepend = false , $type = 'psr4' );
             try
