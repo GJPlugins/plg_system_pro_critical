@@ -151,6 +151,16 @@ class Js extends \Plg\Pro_critical\Assets
      *
      */
     public function setScriptTags(){
+
+        if( !isset( self::$AssetssCollection['scriptDeclaration'] ) )
+        {
+            return ;
+        }#END IF
+
+
+
+
+
         # перебираем JAVAScript теги
         # TODO Добавить Выбор типа контента для скрипта - ( Original | Minified | Overridden )
         foreach (self::$AssetssCollection['scriptDeclaration'] as &$scriptDeclaration )

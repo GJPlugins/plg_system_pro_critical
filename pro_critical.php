@@ -114,6 +114,7 @@ use Joomla\CMS\Plugin\CMSPlugin;
 		public function onAfterInitialise ()
 		{
 
+            JDEBUG ? JProfiler::getInstance('Application')->mark('PLG (pro_critical) BeforeLoad => onAfterInitialise') : null;
 
             if ( \Joomla\CMS\Factory::getDocument()->getType() !== 'html' )
             {
@@ -126,6 +127,11 @@ use Joomla\CMS\Plugin\CMSPlugin;
              */
             $this->Helper->HelperCache->_onAfterInitialise();
 
+
+
+
+
+            JDEBUG ? JProfiler::getInstance('Application')->mark('PLG (pro_critical) AfterLoad => onAfterInitialise') : null;
 
         }
 		

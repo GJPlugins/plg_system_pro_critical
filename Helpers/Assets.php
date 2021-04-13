@@ -209,6 +209,11 @@ class Assets
 
                     $href = $hrefArr[0];
 
+
+
+
+
+
                     # Разбор ссылки - поиск ошибок - исправление ссылки - определение локальная ссылка или нет
                     $log = $Links_assets->linkAnalysis($href);
                     $href = $log['file'];
@@ -219,6 +224,7 @@ class Assets
                     $link['minify_file'] = ( substr_count( $attr['href']  , '.min.' ) ? $href : false );
                     $link['err_path_log'] = null ;
                     $link['params_query'] = null ;
+                    $link['attributes_file'] = null ;
                     $link['type'] = $type ;
                     $link['created_by'] = $userId ;
                     $link['created'] = $Date->toSql()  ;
@@ -236,6 +242,31 @@ class Assets
                         # Разобрать параметры ссылки
                         $link['params_query'] = $Links_assets->parseRequestParameters($hrefArr, $link, $href);
                     }#END IF
+
+
+
+                    $i = 0 ;
+                    foreach ( $attr as $name => $val )
+                    {
+                        $attrArr = ['media' , 'rel'];
+                        if( !in_array($name , $attrArr) ) continue; #END IF
+
+                        $link['attributes_file']['attributes_file'.$i] = [
+                            'attr' => $name ,
+                            'value' => $val ,
+                        ];
+                        $i++;
+                    }#END FOREACH
+
+                    /*if ( $link['file'] == '/modules/mod_menu_categories_shop/assets/css/mod_menu_categories_shop.mobile.css' ) {
+//
+                        echo'<pre>';print_r( $link );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+                        die(__FILE__ .' '. __LINE__ );
+                    }#END IF*/
+
+
+
+                    
 
                     # Очистить ссылку : Оставляем только путь к файлу от корня сайта
                     $link['file'] = $Links_assets::cleanLocalLink( $link['file'] );
@@ -384,7 +415,7 @@ class Assets
         # Получить данные из справочника для <link Css />
         $linkDbList = $this->getItemTableData('link') ;
 
-        # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
+        # Найти новые ресурсы которых нет в справочнике и добавить их  в справочник
         $this->getNewAssets( 'link' , (array)$linkDbList);
 
 
@@ -392,18 +423,18 @@ class Assets
 
         # Получить данные из справочника для <Style Css />
         $styleDbList = $this->getItemTableData('style') ;
-        # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
+        # Найти новые ресурсы которых нет в справочнике и добавить их  в справочник
         $this->getNewAssets( 'style' , (array)$styleDbList);
 
         # Получить данные из справочника для <script />
         $scriptDbList = $this->getItemTableData('script') ;
 
-        # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
+        # Найти новые ресурсы которых нет в справочнике и добавить их  в справочник
         $this->getNewAssets( 'script' , (array)$scriptDbList);
 
         # Получить данные из справочника для <script Declaration/>
         $scriptDeclarationDbList = $this->getItemTableData('scriptDeclaration') ;
-        # Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
+        # Найти новые ресурсы которых нет в справочнике и добавить их  в справочник
         $this->getNewAssets( 'scriptDeclaration' , (array)$scriptDeclarationDbList);
     }
 
@@ -442,23 +473,22 @@ class Assets
      */
     protected function getAttr($Object){
 
-
         if(  empty( $Object->attrs ) ) return [] ; #END IF
-         
 
-        
-        
         $Registry = new Registry( $Object->attrs );
         return $Registry->toArray() ;
     }
 
     /**
-     * Выбрать подходящию сборку файла ( file | override | minify_file )
+     * Выбрать подходящею сборку файла ( file | override | minify_file )
+     *
      * @param $Object object данные ресурса JS
-     * @since 3.9
+     *
+     * @return mixed
+     * @since  3.9
      * @auhtor Gartes | sad.net79@gmail.com | Skype : agroparknew | Telegram : @gartes
-     * @date 25.08.2020 19:53
-     *  Todo - Добавить состаяние отладки файла
+     * @date   25.08.2020 19:53
+     *         Todo - Добавить состаяние отладки файла
      */
     protected function getFile( $Object ){
         $file =  $Object->file ;
@@ -501,10 +531,8 @@ class Assets
         return $file ;
     }
 
-
-
     /**
-     * Найти новые рессурсы которых нет в справочнике и добавить их  в справочник
+     * Найти новые ресурсы которых нет в справочнике и добавить их  в справочник
      * @param string    $view   тип ресурса   link | script
      * @param array     $DbList массив данных из справичника этого типа
      * @throws Exception
@@ -515,6 +543,8 @@ class Assets
     protected function getNewAssets(string $view, array $DbList){
 
         if (!isset( self::$AssetssCollection[$view] )) return ;  #END IF
+
+
 
 
 
@@ -532,9 +562,6 @@ class Assets
             $columns[]= $key ;
         }#END FOREACH
 
-
-
-
         # Индикатор добавления в DB
         $addDB = false ;
 
@@ -542,10 +569,7 @@ class Assets
 
 
 
-
-
-
-        # Перебрать рессурсы
+        # Перебрать ресурсы
         foreach (self::$AssetssCollection[$view] as $hash => &$data ){
 
 
@@ -563,9 +587,7 @@ class Assets
                     unset( self::$AssetssCollection[$view][$hash] );
                     continue ;
                 }#END IF
-
                 self::$AssetssCollection[$view][$hash] = $DbList[$hash] ;
-
             }
             else
             {
@@ -573,16 +595,13 @@ class Assets
                 $excludeLinesArr = self::$params->get('exclude_dynamic_lines_'.$view , [] ) ;
                 $Registry = new Registry($excludeLinesArr) ;
                 $Arr = $Registry->toArray() ;
-                $mapArr = array_map(
-                    function($key, $value) {
-                        return $value['text'];
-                    },
-                    array_keys($Arr),
-                    $Arr
-                );
+                $mapArr = array_map( function($key, $value) { return $value['text'];  }, array_keys($Arr), $Arr  );
 
 
-
+                # Если inline Js - и в настройках компонента указано не сохранять JS Inline ( скрипты из тела страницы в тегах <script /> )
+//                if( $view == 'scriptDeclaration' && self::$params->get('not_save_js_inline' , 1 ) ) {
+//                     continue ;
+//                } #END IF
 
                 switch ($view){
                     case 'scriptDeclaration':
@@ -594,10 +613,11 @@ class Assets
                 # Проверяем на исключение записи в DB ( Component Config ) для scriptDeclaration
                 if( $testStr )
                 {
+
                     # Найти подстроку из массива в заданной строке
                     $r = \GNZ11\Document\Arrays::strpos_array( $testStr , $mapArr) ;
                     # Если подстарка исключения найдена пропускаем добавление в справочник
-                    if(  $r ) {
+                    if(  $r || self::$params->get('not_save_js_inline' , 1 ) ) {
                         #Переводим в объект новые найденные ресурсы
                         \GNZ11\Document\Arrays::arrToObj( $data ) ;
                         continue ;
@@ -608,6 +628,36 @@ class Assets
                 $addDB = true ;
                 # Фильтрация элементов с определенными именами ключей
                 $valuesArr   = \GNZ11\Document\Arrays::filterElemByKey($data , $excludeFields ) ;
+
+                if( $valuesArr['attributes_file'] )
+                {
+                    # Подготавливаем атрибуты файла async , defer , media , rel
+                    $valuesArr['attributes_file'] = json_encode( $valuesArr['attributes_file'] ) ;
+                }#END IF
+
+
+
+                if ( $view == 'link' ) {
+//
+//                    echo'<pre>';print_r( $valuesArr );echo'</pre>'.__FILE__.' '.__LINE__;
+
+//                    die(__FILE__ .' '. __LINE__ );
+                }#END IF
+
+                # Для инлайн скриптов
+                if ( $view == 'scriptDeclaration' ) {
+                    unset( $valuesArr['attributes_file'] ) ;
+                }
+
+//                echo'<pre>';print_r( $columns );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+                
+//                unset(   $valuesArr['content']  ) ;
+//                echo'<pre>';print_r( $view );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//                echo'<pre>';print_r( $valuesArr['attributes_file'] );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//                echo'<pre>';print_r( $valuesArr  );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//                die(__FILE__ .' '. __LINE__ );
+
+
 
                 $obsoleteQuoted = array_map( array( $this->db , 'quote'),  $valuesArr );
                 $Query->values( implode( "," , $obsoleteQuoted ) . PHP_EOL );
@@ -628,27 +678,14 @@ class Assets
         if( $view == 'scriptDeclaration' && !self::$params->get('save_books_js_script' , 1 )  ) return;  #END IF
 
 
-
-
-
-
-
-
-
-
-
-
         $Query->insert( $this->db->quoteName( $tbl ) )->columns( $this->db->quoteName( $columns ) );
 
-        if ($view == 'link') {
-//            echo'<pre>';print_r( $Query->dump() );echo'</pre>'.__FILE__.' '.__LINE__;
-//            echo'<pre>';print_r( $tbl );echo'</pre>'.__FILE__.' '.__LINE__;
-//            echo'<pre>';print_r( $addDB );echo'</pre>'.__FILE__.' '.__LINE__;
-//            echo'<pre>';print_r( $view );echo'</pre>'.__FILE__.' '.__LINE__;
-//            die(__FILE__ .' '. __LINE__ );
-        }#END IF
-
         $this->db->setQuery( $Query );
+        
+//        echo'<pre>';print_r( $Query->dump() );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//        die(__FILE__ .' '. __LINE__ );
+
+        
         try
         {
             // Code that may throw an Exception or Error.

@@ -109,11 +109,15 @@
          */
         public function setCss(){
 
+
+
             # Если коллекция css ссылок пустая
             if (!isset( self::$AssetssCollection['link'] )) return ; #END IF
 
             # Проверить Если не созданы CCSS
             $checkCCSS = \Plg\Pro_critical\Helpers\Assets\Css_critical::checkCriticalCssData() ;
+
+
 
             # Если созданы CCSS - Добавляем <style>CCSS</style> перед тегом </head>
             if ( $checkCCSS )
@@ -141,6 +145,10 @@
                 $attr = $this->getAttr( $item ) ;
                 $attr['rel']  ="stylesheet";
 
+
+
+
+
                 $file = $this->getFile( $item );
 
                 # для создания ссылки к файлу убираем домен
@@ -154,7 +162,25 @@
                 $attr['href'] = Uri::root().$file ;
 
 
-                # Если CCSS не созданы - добавляем  как есть
+                $item->attributes_file = json_decode( $item->attributes_file ) ;
+                if( isset( $item->attributes_file ) )
+                {
+                    foreach ( $item->attributes_file as $attribute)
+                    {
+                        $name = $attribute->attr ;
+                        $value = $attribute->value ;
+                        $attr[$name] = $value ;
+
+
+                    }#END FOREACH
+                }#END IF
+
+
+
+
+
+
+                # Если CCSS не созданы - добавляем  как есть в низ тега <head />
                 if (!$checkCCSS)
                 {
                     self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
@@ -165,6 +191,11 @@
                 unset( $attr['rel'] ) ;
                 $loadLaterCss[] = $attr ;
             }#END FOREACH
+
+
+
+
+
 
             # Справочник view=css_style
             $loadLaterCssStyle = [] ;
@@ -194,8 +225,12 @@
                 $loadLaterCssStyle[] = [ 'content' => $item['content'] , 'attr' => $attr ]  ;
             }#END FOREACH
 
+
+
+
+
             
-            # Если в настройках компонента установлено создавать прелоадер
+            # Если в настройках компонента установлено создавать PRELOADER
             if ( self::$params->get('ccss_add_preloader_ccs_link' , true ) )
             {
                 $RevLoadLaterCss = array_reverse( $loadLaterCss );
@@ -204,11 +239,14 @@
                     # Создать предварительную загрузку ключевых запросов
                     $attr['rel'] = 'preload' ;
                     $attr['as'] = 'style' ;
-//                    self::$dom::_setTopHeadTag( self::$dom , 'link',  '',  $attr   );
                     self::$dom::_setBottomHeadTag( self::$dom , 'link',  '',  $attr   );
                 }#END FOREACH
 
             }#END IF
+
+
+
+
 
 
 
@@ -221,7 +259,7 @@
                 foreach ( $loadLaterCss as $linkCss)
                 {
                     # Добавить файл в загрузку JPro
-                    \GNZ11\Core\Js::addJproLoad( $linkCss['href'] , /*'Callback'*/ false , $Trigger = '__loadLaterCss' );
+                    \GNZ11\Core\Js::addJproLoad( $linkCss['href'] , /*'Callback'*/ false , $Trigger = '__loadLaterCss' , $linkCss );
                 }#END FOREACH
             }#END IF
 

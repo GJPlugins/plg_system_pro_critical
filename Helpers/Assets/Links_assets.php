@@ -285,7 +285,7 @@
 		}
 
         /**
-         * Разобрать параметры запроса
+         * Разобрать параметры GET запроса
          *
          * @param   array  $hrefArr
          * @param   array  $link
@@ -309,6 +309,10 @@
                 $i++;
             }#END FOREACH
             return json_encode( $link[ $href ][ 'params_query' ] );
+        }
+
+        public static function prepareAttributesFile($attrsArr){
+
         }
 		
 		

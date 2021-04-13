@@ -90,9 +90,6 @@
             $this->params = $params ;
             $this->paramsComponent = ComponentHelper::getParams( 'com_pro_critical' );
 
-
-
-
             $this->app = Factory::getApplication();
             $this->db = Factory::getDbo();
         
@@ -106,11 +103,6 @@
             // Instantiate cache with previous options and create the cache key identifier.
             $this->_cache     = Cache::getInstance('page', $options);
             $this->_cache_key = Uri::getInstance()->toString();
-
-
-
-
-
 
             return $this;
         }
@@ -132,13 +124,14 @@
         }
 
         public function _onAfterInitialise(){
-
-
-
             if ($this->app->isClient('administrator') || $this->app->get('offline', '0') || $this->app->getMessageQueue())
             {
                 return;
             }
+
+
+
+
             # Если кеширование отключено в настройках компонента
             if( !$this->paramsComponent->get('cache_on' , 0 ) ) return ; #END IF
 
@@ -146,7 +139,6 @@
             {
               $HelperCssCritical =   \Plg\Pro_critical\Helpers\Assets\Css_critical::instance( $this->paramsComponent ) ;
               $checkCCSS = $HelperCssCritical->getCriticalCss() ;
-
             } catch (Exception $e)
             {
                 echo'<pre>';print_r( $e );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
@@ -160,6 +152,7 @@
             $results = \JEventDispatcher::getInstance()->trigger('onPageCacheSetCaching');
             $caching = !in_array(false, $results, true);
 
+
             if ( $caching && Factory::getUser()->guest && $this->app->input->getMethod() === 'GET')
             {
                 $this->_cache->setCaching(true);
@@ -167,7 +160,10 @@
 
             $data = $this->_cache->get( $this->getCacheKey() );
 
-
+//            echo'<pre>';print_r( $this->getCacheKey() );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            echo'<pre>';print_r( $caching );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            echo'<pre>';print_r( $checkCCSS );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//            die(__FILE__ .' '. __LINE__ );
 
 
             // If page exist in cache, show cached page.
@@ -176,9 +172,17 @@
                 // Set HTML page from cache.
                 $this->app->setBody($data);
 
-                // Dumps HTML page.
-                echo $this->app->toString((bool) $this->app->get('gzip'));
 
+
+                
+                // Dumps HTML page.
+                 $HtmlPage = $this->app->toString(  (bool) $this->app->get('gzip'));
+
+                  
+
+
+
+                echo $HtmlPage ;
                 // Mark afterCache in debug and run debug onAfterRespond events.
                 // e.g., show Joomla Debug Console if debug is active.
                 if (JDEBUG)
@@ -272,13 +276,6 @@
                 $parts = \JEventDispatcher::getInstance()->trigger('onPageCacheGetKey');
                 $parts[] = Uri::getInstance()->toString();
                 $parts[] = $WebClient->__get('mobile');
-                
-
-
-
-
-
-
                 $key = md5(serialize($parts));
             }
 
@@ -294,8 +291,6 @@
          */
         protected function isExcluded()
         {
-
-
 
             // Check if menu items have been excluded.
             if ($exclusions = $this->paramsComponent->get('cache_exclude_menu_items', array()))

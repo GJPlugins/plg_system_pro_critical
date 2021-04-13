@@ -37,7 +37,7 @@ use \MatthiasMullie\Minify;
 class Css_critical
 {
     /**
-     * @var array|object Настройки компонента
+     * @var Registry Настройки компонента
      * @since 3.9
      */
     private static $params;
@@ -92,8 +92,11 @@ class Css_critical
         # Найти CCSS в DB
         self::$CriticalCssData = $this->getCriticalCss();
 
-        # Если CCSS не созданы создать задачу для FRONT
-        if ( !self::$CriticalCssData )
+        # Режим создания СCSS
+        $creation_mode_ccss = self::$params->get('creation_mode_ccss' , false ) ;
+
+        # Если CCSS не созданы && Включен режим создания CCSS - создать задачу на FRONT
+        if ( !self::$CriticalCssData && $creation_mode_ccss )
         {
             $plugin_param = self::$params->get('plugin_param');
             $__v = $plugin_param->get('__v');
@@ -171,7 +174,7 @@ class Css_critical
      *
      */
     public static function getAddressURI() {
-        $protocol = $_SERVER['HTTPS'] == 'on' ? 'https' : 'http';
+        $protocol = ( isset( $_SERVER['HTTPS'] ) &&  $_SERVER['HTTPS'] == 'on') ? 'https' : 'http';
         return $protocol.'://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
     }
 
@@ -201,8 +204,16 @@ class Css_critical
      *
      */
     protected function getAllCss(){
-        # Если создание CCSS отключено
-        if ( !self::$params->get('css_critical_on')) return ;  #END IF
+
+        # Режим создания СCSS
+        $creation_mode_ccss = self::$params->get('creation_mode_ccss' , false ) ;
+        # использование CCSS
+        $css_critical_on =  self::$params->get('css_critical_on') ;
+
+
+
+        # Если использование CCSS отключено || Выключен режим создания CCSS
+        if ( !$css_critical_on || !$creation_mode_ccss ) return ;  #END IF
 
         # Получить ключ текущей страницы
         $key = \Plg\Pro_critical\Helper::$PageKey;

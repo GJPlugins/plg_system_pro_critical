@@ -85,7 +85,11 @@
 		public function minify(){
 			
 			$form = $this->app->input->get('data' , false , 'RAW');
-			
+
+
+
+
+
 			if( !$form  )
 			{
 				$arr = $this->app->input->get('data' , [] , 'ARRAY');
@@ -96,27 +100,34 @@
 			
 			# Если передается не форма а строка с ссылкой на файл
 			if( !isset($output['jform']) )
-			{
-				$file = $form ;
-				$Ext = JFile::getExt( $form );
-				if ($Ext == 'css'){
-					$urlApi =  self::$cssUrl ;
-				}else if($Ext == 'js'){
-					$urlApi = self::$javascriptUrl ;
-				}else{
-					$mes = 'Не удалось определить тип обрабатываемых данных.' ;
-					throw new Exception( $mes , 500 );
-				}#END IF
-				
-				#Подготовить имена файлов и отправить на сжатие.
-				$data = $this->getDataProcess( $file , $urlApi   );
-				
-				$mes = 'Сжатие файла выполнено!';
-				$this->app->enqueueMessage( $mes  );
-				
-				return $data;
-				
-			}#END IF
+            {
+                $file = $form;
+                $Ext = JFile::getExt($form);
+                if( $Ext == 'css' )
+                {
+                    $urlApi = self::$cssUrl;
+                } else if( $Ext == 'js' )
+                {
+                    $urlApi = self::$javascriptUrl;
+                } else
+                {
+                    $mes = 'Не удалось определить тип обрабатываемых данных.';
+                    throw new Exception($mes , 500);
+                }#END IF
+
+
+
+                #Подготовить имена файлов и отправить на сжатие.
+                $data = $this->getDataProcess($file , $urlApi);
+
+
+
+                $mes = 'Сжатие файла выполнено!';
+                $this->app->enqueueMessage($mes);
+
+                return $data;
+
+            }#END IF
 			
 			$model =  ( explode('.' , $output['task'] ) )[0] ;
 			$jform = $output['jform'] ;
@@ -334,25 +345,39 @@
 			
 			foreach( $arr as $originalFilePath => $minFilePath )
 			{
+
+
+
 				$handler = @fopen( $minFilePath , 'w' );
 				if( !$handler )
 				{
 					fclose( $handler );
-					$mes = 'Не возможно открыть файл для записи.' . '<br>';
+					$mes = 'Не возможно прочитать оригинальный файл.<br>';
 					$mes .= 'Проверьте права доступа к файлу и директории.';
 					throw new Exception( $mes , 500 );
 				}#END IF
-				
-				if( !JFile::exists($originalFilePath) )
+
+
+
+
+
+
+                if( !JFile::exists($originalFilePath) )
 				{
 					fclose( $handler );
 					$mes = 'Не возможно открыть оригинальный файл с данными для чтения.' . '<br>';
 					$mes .= 'Проверьте правильность указания путей(ссылок) на файл.';
 					throw new Exception( $mes , 500 );
 				}#END IF
-				
+
+
+
 				$contents = file_get_contents( $originalFilePath );
-				
+
+
+
+
+
 				try
 				{
 					$GNZ11_Js_css = new \GNZ11\Api\Optimize\Js_css();
@@ -364,7 +389,10 @@
 					throw new Exception( $e->getMessage() , 500 );
 					// Executed only in PHP 5, will not be reached in PHP 7
 				}
-				
+
+
+
+
 				$data[ 'files' ] = [
 					'file' => $this->file ,
 					'minify_file' => $this->newFile ,
@@ -399,8 +427,15 @@
             # Изменить расшерение файла - добавить ".min"
             $newfile = $this->replace_extension($file);
 
+
+
+
+
             $this->file = str_replace(JURI::root(), '/', $file);
             $this->newFile = str_replace(JURI::root(), '/', $newfile);
+
+
+
 
             $newArr[JPATH_ROOT . $this->file] = JPATH_ROOT . $this->newFile;
             return $this->Procrss_minify($newArr, $urlApi);
