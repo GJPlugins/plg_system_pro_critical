@@ -212,19 +212,12 @@
 		 */
 		public function BeforeCompileHead()
         {
-
-
-
-
              if ($this->app->isClient('administrator') )  return ; #END IF
-
-
 
             $doc = JFactory::getDocument();
             $DefaultLanguage = \Plg\Pro_critical\Helper_site::getDefaultLanguage();
             $languages = \JLanguageHelper::getLanguages('lang_code');
             $doc->addScriptOptions('langSef', $languages[$DefaultLanguage]->sef);
-
 
             $menu = \JFactory::getApplication()->getMenu();
             $active = $menu->getActive();
@@ -241,8 +234,6 @@
                 }
             }#END IF
 
-
-
             # instance GNZ11
             $this->GNZ11_js = \GNZ11\Core\Js::instance($this->paramsComponent);
             # Утановить настройки библионтеки GNZ11
@@ -254,8 +245,6 @@
             \GNZ11\Core\Js::addJproLoad(\Joomla\CMS\Uri\Uri::root().'plugins/system/pro_critical/assets/js/proCriticalCore.js?v=' . $__v );
 
             $this->loadDummyStyle();
-
-
 
             ############################################################################################################
             # Только для администратора

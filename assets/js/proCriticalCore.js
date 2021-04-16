@@ -220,6 +220,7 @@ window.proCriticalCore = function () {
      * Дозагрузка CSS
      */
     this.loadLaterCss = function (){
+        if( typeof  this.Tasks.Css.loadLaterCss === 'undefined' ) return ;
         // var LaterCss = JSON.parse( $('#pro_critical-script-LoadLaterCss').text() ) ;
          console.log(this.Tasks.Css.loadLaterCss.link )
          console.log(this.Tasks.Css.loadLaterCss.stile )

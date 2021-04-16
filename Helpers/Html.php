@@ -90,8 +90,6 @@ class Html
     {
         self::$params = $params ;
 
-
-
         $this->app = Factory::getApplication();
         $this->db = Factory::getDbo();
         return $this;
@@ -117,19 +115,16 @@ class Html
 
         # Получить Html Задания
         $tasks = $this->getTaskHtml();
+
         # Массив с Id выполненых задач
         $useIdTask = [] ;
-        
-//        echo'<pre>';print_r( $tasks );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
-
 
         foreach ( $tasks as $task )
         {
             if (isset( $task->task_data )) {
                 $task->task_data = json_decode( $task->task_data );
             }#END IF
-            
-          
+
             $_t = 'task'.ucfirst ( $task->html_processing );
 
             try
@@ -148,8 +143,6 @@ class Html
             }
 
         }#END FOREACH
-
-//        die(__FILE__ .' '. __LINE__ );
 
     }
 
@@ -171,7 +164,6 @@ class Html
         }
 
     }
-
 
     /**
      * Выполнение задачи для - Скрытие элемента от рейдинга <template />
@@ -496,7 +488,6 @@ class Html
         }
     }
 
-
     /**
      * Обработка задания для отложенной загрузки изоброжений
      * @param $paramsTask - параметры задачи
@@ -524,6 +515,22 @@ class Html
             }#END IF
             $attr['class'].=' checkPosition' ;
             $attr['data-position'].='img-deferred' ;
+
+            if( isset( $paramsTask->task_data->width ) )
+            {
+                $attr['width'] = $paramsTask->task_data->width ;
+            }#END IF
+
+            if( isset( $paramsTask->task_data->height ) )
+            {
+                $attr['height'] = $paramsTask->task_data->height ;
+            }#END IF
+
+//            if( $paramsTask->id == 10 )
+//            {
+//                echo'<pre>';print_r( $paramsTask->task_data->width );echo'</pre>'.__FILE__.' '.__LINE__ . PHP_EOL;
+//                die(__FILE__ .' '. __LINE__ );
+//            }#END IF
 
             # Установка атрибутов узла
             $node->setAttribute('src', $print );

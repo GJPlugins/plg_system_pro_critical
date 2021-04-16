@@ -20,7 +20,7 @@
 	
 	// No direct access to this file
 	defined( '_JEXEC' ) or die( 'Restricted access' );
-	
+    if (!defined('DS')) define('DS', DIRECTORY_SEPARATOR);
 	
 	use Joomla\CMS\Application\CMSApplication;
 use Joomla\CMS\Factory as JFactory;
